@@ -43,7 +43,6 @@ class QPaintView {
             }
         }
         this.drawing = drawing
-        this.bound = drawing.getBoundingClientRect()
     }
 
     onpaint(ctx) {
@@ -61,7 +60,8 @@ class QPaintView {
 
     invalidateRect(reserved) {
         let ctx = this.drawing.getContext("2d")
-        ctx.clearRect(0, 0, this.bound.width, this.bound.height)
+        let bound = this.drawing.getBoundingClientRect()
+        ctx.clearRect(0, 0, bound.width, bound.height)
         this.onpaint(ctx)
     }
 
