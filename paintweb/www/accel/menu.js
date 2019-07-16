@@ -46,7 +46,7 @@ function installPropSelectors() {
         <option value="7">7</option>
         <option value="9">9</option>
         <option value="11">11</option>
-    </select>
+    </select>&nbsp;
 
     <label for="LineColor">LineColor: </label>
     <select id="LineColor" onchange="onLineColorChanged()">
