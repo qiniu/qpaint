@@ -8,7 +8,7 @@
 
 Session-based Model:
 
-* https://github.com/qiniu/qpaint/tree/master/paintweb
+* https://github.com/qiniu/qpaint/blob/master/paintweb/main.go
 
 ViewModel:
 

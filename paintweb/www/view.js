@@ -12,7 +12,6 @@ class QPaintView {
         this.onmouseup = null
         this.ondblclick = null
         this.onkeypress = null
-        this.onCurrentChanged = null
         let drawing = document.getElementById("drawing")
         let view = this
         drawing.onmousedown = function(event) {
@@ -90,9 +89,6 @@ class QPaintView {
     _setCurrent(name, ctrl) {
         this.current = ctrl
         this.currentKey = name
-        if (this.onCurrentChanged) {
-            this.onCurrentChanged()
-        }
     }
 }
 

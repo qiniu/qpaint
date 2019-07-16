@@ -14,6 +14,11 @@ function installControllers() {
         let elem = document.getElementById(key)
         elem.style.visibility = "visible"
         elem.onclick = function() {
+            if (qview.currentKey != "") {
+                document.getElementById(qview.currentKey).removeAttribute("style")
+            }
+            elem.style.borderColor = "blue"
+            elem.blur()
             qview.invokeController(key)
         }
     }
