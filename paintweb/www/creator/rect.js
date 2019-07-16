@@ -67,8 +67,10 @@ class QRectCreator {
         if (this.started) {
             let rect = this.rect
             let r = normalizeRect(rect)
+            let props = qview.properties
+            ctx.lineWidth = props.lineWidth
+            ctx.strokeStyle = props.lineColor
             ctx.beginPath()
-            ctx.lineWidth = qview.properties.lineWidth
             switch (this.shapeType) {
             case "line":
                 ctx.moveTo(rect.p1.x, rect.p1.y)

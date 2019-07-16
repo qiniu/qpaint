@@ -22,12 +22,18 @@ function installControllers() {
 // ----------------------------------------------------------
 
 function onLineWidthChanged() {
-    let lineWidth = document.getElementById("LineWidth")
-    let val = parseInt(lineWidth.value)
-    lineWidth.blur()
+    let elem = document.getElementById("LineWidth")
+    elem.blur()
+    let val = parseInt(elem.value)
     if (val > 0) {
         qview.properties.lineWidth = val
     }
+}
+
+function onLineColorChanged() {
+    let elem = document.getElementById("LineColor")
+    elem.blur()
+    qview.properties.lineColor = elem.value
 }
 
 function installPropSelectors() {
@@ -40,6 +46,16 @@ function installPropSelectors() {
         <option value="7">7</option>
         <option value="9">9</option>
         <option value="11">11</option>
+    </select>
+
+    <label for="LineColor">LineColor: </label>
+    <select id="LineColor" onchange="onLineColorChanged()">
+        <option value="black">black</option>
+        <option value="red">red</option>
+        <option value="blue">blue</option>
+        <option value="green">green</option>
+        <option value="yellow">yellow</option>
+        <option value="gray">gray</option>
     </select>
     </div>`)
 }

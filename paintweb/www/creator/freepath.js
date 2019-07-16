@@ -45,7 +45,9 @@ class QFreePathCreator {
 
     onpaint(ctx) {
         if (this.started) {
-            ctx.lineWidth = qview.properties.lineWidth
+            let props = qview.properties
+            ctx.lineWidth = props.lineWidth
+            ctx.strokeStyle = props.lineColor
             ctx.beginPath()
             ctx.moveTo(this.fromPos.x, this.fromPos.y)
             for (let i in this.points) {

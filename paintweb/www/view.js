@@ -1,7 +1,8 @@
 class QPaintView {
     constructor() {
         this.properties = {
-            lineWidth: 1
+            lineWidth: 1,
+            lineColor: "black"
         }
         this.controllers = {}
         this.currentKey = ""
