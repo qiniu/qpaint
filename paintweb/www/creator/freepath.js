@@ -21,6 +21,13 @@ class QFreePathCreator {
         this.started = false
         invalidate(null)
     }
+    buildShape() {
+        let points = [{x: this.fromPos.x, y: this.fromPos.y}]
+        for (let i in this.points) {
+            points.push(this.points[i])
+        }
+        return new QPath(points, this.close, qview.lineStyle)
+    }
 
     onmousedown(event) {
         this.fromPos = qview.getMousePos(event)
@@ -34,6 +41,7 @@ class QFreePathCreator {
     }
     onmouseup(event) {
         if (this.started) {
+            qview.doc.addShape(this.buildShape())
             this.reset()
         }
     }

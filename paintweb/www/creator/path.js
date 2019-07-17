@@ -22,6 +22,13 @@ class QPathCreator {
         this.started = false
         invalidate(null)
     }
+    buildShape() {
+        let points = [{x: this.fromPos.x, y: this.fromPos.y}]
+        for (let i in this.points) {
+            points.push(this.points[i])
+        }
+        return new QPath(points, this.close, qview.lineStyle)
+    }
 
     onmousedown(event) {
         this.toPos = qview.getMousePos(event)
@@ -41,6 +48,7 @@ class QPathCreator {
     }
     ondblclick(event) {
         if (this.started) {
+            qview.doc.addShape(this.buildShape())
             this.reset()
         }
     }
@@ -66,6 +74,9 @@ class QPathCreator {
                 ctx.lineTo(this.points[i].x, this.points[i].y)
             }
             ctx.lineTo(this.toPos.x, this.toPos.y)
+            if (this.close) {
+                ctx.closePath()
+            }
             ctx.stroke()
         }
     }

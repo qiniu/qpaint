@@ -40,6 +40,26 @@ class QRectCreator {
         this.started = false
         invalidate(this.rect)
     }
+    buildShape() {
+        let rect = this.rect
+        let r = normalizeRect(rect)
+        switch (this.shapeType) {
+        case "line":
+            return new QLine(rect.p1, rect.p2, qview.lineStyle)
+        case "rect":
+            return new QRect(r, qview.lineStyle)
+        case "ellipse":
+            let rx = r.width / 2
+            let ry = r.height / 2
+            return new QEllipse(r.x + rx, r.y + ry, rx, ry, qview.lineStyle)
+        case "circle":
+            let rc = Math.sqrt(r.width * r.width + r.height * r.height)
+            return new QEllipse(rect.p1.x, rect.p1.y, rc, rc, qview.lineStyle)
+        default:
+            alert("unknown shapeType: " + this.shapeType)
+            return null
+        }
+    }
 
     onmousedown(event) {
         this.rect.p1 = qview.getMousePos(event)
@@ -54,6 +74,7 @@ class QRectCreator {
     onmouseup(event) {
         if (this.started) {
             this.rect.p2 = qview.getMousePos(event)
+            qview.doc.addShape(this.buildShape())
             this.reset()
         }
     }
@@ -65,36 +86,7 @@ class QRectCreator {
 
     onpaint(ctx) {
         if (this.started) {
-            let rect = this.rect
-            let r = normalizeRect(rect)
-            let props = qview.properties
-            ctx.lineWidth = props.lineWidth
-            ctx.strokeStyle = props.lineColor
-            ctx.beginPath()
-            switch (this.shapeType) {
-            case "line":
-                ctx.moveTo(rect.p1.x, rect.p1.y)
-                ctx.lineTo(rect.p2.x, rect.p2.y)
-                ctx.stroke()
-                break
-            case "rect":
-                ctx.rect(r.x, r.y, r.width, r.height)
-                ctx.stroke()
-                break
-            case "ellipse":
-                let rx = r.width / 2
-                let ry = r.height / 2
-                ctx.ellipse(r.x + rx, r.y + ry, rx, ry, 0, 0, 2 * Math.PI)
-                ctx.stroke()
-                break
-            case "circle":
-                let rc = Math.sqrt(r.width * r.width + r.height * r.height)
-                ctx.ellipse(rect.p1.x, rect.p1.y, rc, rc, 0, 0, 2 * Math.PI)
-                ctx.stroke()
-                break
-            default:
-                alert("unknown shapeType: " + this.shapeType)
-            }
+            this.buildShape().onpaint(ctx)
         }
     }
 }

@@ -5,8 +5,8 @@ class QPaintView {
             lineColor: "black"
         }
         this.controllers = {}
-        this.currentKey = ""
-        this.current = null
+        this._currentKey = ""
+        this._current = null
         this.onmousedown = null
         this.onmousemove = null
         this.onmouseup = null
@@ -37,17 +37,30 @@ class QPaintView {
             }
         }
         document.onkeydown = function(event) {
-            event.preventDefault()
+            switch (event.keyCode) {
+            case 9: case 13: case 27:
+                event.preventDefault()
+            }
             if (view.onkeydown != null) {
                 view.onkeydown(event)
             }
         }
         this.drawing = drawing
+        this.doc = new QPaintDoc()
+    }
+
+    get currentKey() {
+        return this._currentKey
+    }
+    get lineStyle() {
+        let props = this.properties
+        return new QLineStyle(props.lineWidth, props.lineColor)
     }
 
     onpaint(ctx) {
-        if (this.current != null) {
-            this.current.onpaint(ctx)
+        this.doc.onpaint(ctx)
+        if (this._current != null) {
+            this._current.onpaint(ctx)
         }
     }
 
@@ -80,15 +93,15 @@ class QPaintView {
         }
     }
     stopController() {
-        if (this.current != null) {
-            this.current.stop()
+        if (this._current != null) {
+            this._current.stop()
             this._setCurrent("", null)
         }
     }
 
     _setCurrent(name, ctrl) {
-        this.current = ctrl
-        this.currentKey = name
+        this._current = ctrl
+        this._currentKey = name
     }
 }
 
