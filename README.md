@@ -4,20 +4,20 @@
 
 * TODO
 
-## QPaint Web
+## QPaint Web (第 26 讲)
 
 Session-based Model:
 
-* https://github.com/qiniu/qpaint/blob/master/paintweb/www/dom.js
+* [dom.js](https://github.com/qiniu/qpaint/blob/v26/paintweb/www/dom.js)
 
 ViewModel:
 
-* https://github.com/qiniu/qpaint/blob/master/paintweb/www/view.js
-* https://github.com/qiniu/qpaint/blob/master/paintweb/www/index.htm
+* [view.js](https://github.com/qiniu/qpaint/blob/v26/paintweb/www/view.js)
+* [index.htm](https://github.com/qiniu/qpaint/blob/v26/paintweb/www/index.htm)
 
 Controllers:
 
-* Menu, PropSelectors, MousePosTracker: https://github.com/qiniu/qpaint/blob/master/paintweb/www/accel/menu.js
-* Create Path: https://github.com/qiniu/qpaint/blob/master/paintweb/www/creator/path.js
-* Create FreePath: https://github.com/qiniu/qpaint/blob/master/paintweb/www/creator/freepath.js
-* Create Line, Rect, Ellipse, Circle: https://github.com/qiniu/qpaint/blob/master/paintweb/www/creator/rect.js
+* Menu, PropSelectors, MousePosTracker: [accel/menu.js](https://github.com/qiniu/qpaint/blob/v26/paintweb/www/accel/menu.js)
+* Create Path: [creator/path.js](https://github.com/qiniu/qpaint/blob/v26/paintweb/www/creator/path.js)
+* Create FreePath: [creator/freepath.js](https://github.com/qiniu/qpaint/blob/v26/paintweb/www/creator/freepath.js)
+* Create Line, Rect, Ellipse, Circle: [creator/rect.js](https://github.com/qiniu/qpaint/blob/v26/paintweb/www/creator/rect.js)
