@@ -44,6 +44,13 @@ function normalizeRect(rect) {
     return {x: x, y: y, width: width, height: height}
 }
 
+function fill(ctx, fillColor) {
+    if (fillColor != "null") {
+        ctx.fillStyle = fillColor
+        ctx.fill()
+    }
+}
+
 class QShapeStyle {
     constructor(lineWidth, lineColor, fillColor) {
         this.lineWidth = lineWidth
@@ -125,10 +132,9 @@ class QRect {
         let style = this.style
         ctx.lineWidth = style.lineWidth
         ctx.strokeStyle = style.lineColor
-        ctx.fillStyle = style.fillColor
         ctx.beginPath()
-        ctx.fillRect(this.x, this.y, this.width, this.height)
         ctx.rect(this.x, this.y, this.width, this.height)
+        fill(ctx, style.fillColor)
         ctx.stroke()
     }
 }
@@ -172,10 +178,9 @@ class QEllipse {
         let style = this.style
         ctx.lineWidth = style.lineWidth
         ctx.strokeStyle = style.lineColor
-        ctx.fillStyle = style.fillColor
         ctx.beginPath()
         ctx.ellipse(this.x, this.y, this.radiusX, this.radiusY, 0, 0, 2 * Math.PI)
-        ctx.fill()
+        fill(ctx, style.fillColor)
         ctx.stroke()
     }
 }

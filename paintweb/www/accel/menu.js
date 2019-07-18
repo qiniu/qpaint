@@ -45,7 +45,7 @@ function installControllersV2() {
         let elem = document.getElementById(key)
         elem.style.visibility = "visible"
         elem.onclick = function() {
-            if (qview.currentKey != "") {
+            if (qview.currentKey != "ShapeSelector") {
                 document.getElementById(qview.currentKey).removeAttribute("style")
             }
             elem.style.borderColor = "blue"
@@ -124,6 +124,7 @@ function installPropSelectors() {
     <label for="fillColor">FillColor: </label>
     <select id="fillColor" onchange="onPropChanged('fillColor')">
         <option value="white">white</option>
+        <option value="null">transparent</option>
         <option value="black">black</option>
         <option value="red">red</option>
         <option value="blue">blue</option>

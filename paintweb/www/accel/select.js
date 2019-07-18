@@ -19,6 +19,7 @@ class QShapeSelector {
 
     reset() {
         this.started = false
+        invalidate(null)
     }
 
     onmousedown(event) {
@@ -52,7 +53,6 @@ class QShapeSelector {
                 selection.move(pt.x - this.pt.x, pt.y - this.pt.y)
             }
             this.reset()
-            invalidate(null)
         }
     }
     onkeydown(event) {
