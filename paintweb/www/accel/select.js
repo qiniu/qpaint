@@ -1,27 +1,3 @@
-function dashedLineTo(ctx, fromX, fromY, toX, toY, pattern) {
-	let dx = toX - fromX
-	let dy = toY - fromY
-	let distance = Math.floor(Math.sqrt(dx*dx + dy*dy))
-	let dashlineInteveral = (pattern <= 0 ? distance : distance/pattern)
-	let deltay = (dy/distance) * pattern
-	let deltax = (dx/distance) * pattern
-
-	for (let dl=0; dl<dashlineInteveral; dl++) {
-		if (dl%2) {
-			ctx.lineTo(fromX + dl*deltax, fromY + dl*deltay)
-		} else {    				
-			ctx.moveTo(fromX + dl*deltax, fromY + dl*deltay);    				
-		}
-	}
-}
-
-function dashedRect(ctx, x, y, width, height, pattern) {
-    dashedLineTo(ctx, x, y, x+width, y, pattern)
-    dashedLineTo(ctx, x, y+height, x+width, y+height, pattern)
-    dashedLineTo(ctx, x, y, x, y+height, pattern)
-    dashedLineTo(ctx, x+width, y, x+width, y+height, pattern)
-}
-
 class QShapeSelector {
     constructor() {
         this.selection = null
@@ -103,8 +79,10 @@ class QShapeSelector {
             ctx.lineWidth = 1
             ctx.strokeStyle = "gray"
             ctx.beginPath()
-            dashedRect(ctx, bound.x, bound.y, bound.width, bound.height, 5)
+            ctx.setLineDash([5, 5])
+            ctx.rect(bound.x, bound.y, bound.width, bound.height)
             ctx.stroke()
+            ctx.setLineDash([])
         }
     }
 }

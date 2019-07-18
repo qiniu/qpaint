@@ -1,19 +1,31 @@
 
 // d = |(y2-y1)x0 + (x1-x2)y0 + (x2y1 - x1y2)| / sqrt[(x1-x2)^2+(y1-y2)^2]
 //
-function hitOn(pt, pt1, pt2, width) {
+function hitLine(pt, pt1, pt2, width) {
+    if ((pt1.x - pt.x) * (pt.x - pt2.x) < 0) {
+        return false
+    }
+    if ((pt1.y - pt.y) * (pt.y - pt2.y) < 0) {
+        return false
+    }
     let dy = pt2.y - pt1.y
     let dx = pt2.x - pt1.x
     let d12 = Math.sqrt(dx*dx + dy*dy)
     if (d12 < 0.1) {
-        let dy0 = pt1.y - pt.y
-        let dx0 = pt1.x - pt.x
-        let d01 = dx0*dx0 + dy0*dy0
-        let w1 = width/2 + 1
-        return w1*w1 >= d01
+        return false
     }
-    let d = Math.abs(dy*pt.x - dx*pt.y + pt2.x*pt1.y - pt1.x*pt2.y) / d12 - 1
-    return width >= d*2 
+    let d = Math.abs(dy*pt.x - dx*pt.y + pt2.x*pt1.y - pt1.x*pt2.y) / d12 - 2
+    return width >= d*2
+}
+
+function hitRect(pt, r) {
+    if ((r.x + r.width - pt.x) * (pt.x - r.x) < 0) {
+        return false
+    }
+    if ((r.y + r.height - pt.y) * (pt.y - r.y) < 0) {
+        return false
+    }
+    return true
 }
 
 function normalizeRect(rect) {
@@ -57,7 +69,7 @@ class QLine {
         return normalizeRect(this)
     }
     hitTest(pt) {
-        if (hitOn(pt, this.pt1, this.pt2, this.style.lineWidth)) {
+        if (hitLine(pt, this.pt1, this.pt2, this.style.lineWidth)) {
             return {hitCode: 1, hitShape: this}
         }
         return {hitCode: 0, hitShape: null}
@@ -96,6 +108,9 @@ class QRect {
         return {x: this.x, y: this.y, width: this.width, height: this.height}
     }
     hitTest(pt) {
+        if (hitRect(pt, this)) {
+            return {hitCode: 1, hitShape: this}
+        }
         return {hitCode: 0, hitShape: null}
     }
     move(dx, dy) {
@@ -110,7 +125,9 @@ class QRect {
         let style = this.style
         ctx.lineWidth = style.lineWidth
         ctx.strokeStyle = style.lineColor
+        ctx.fillStyle = style.fillColor
         ctx.beginPath()
+        ctx.fillRect(this.x, this.y, this.width, this.height)
         ctx.rect(this.x, this.y, this.width, this.height)
         ctx.stroke()
     }
@@ -148,8 +165,10 @@ class QEllipse {
         let style = this.style
         ctx.lineWidth = style.lineWidth
         ctx.strokeStyle = style.lineColor
+        ctx.fillStyle = style.fillColor
         ctx.beginPath()
         ctx.ellipse(this.x, this.y, this.radiusX, this.radiusY, 0, 0, 2 * Math.PI)
+        ctx.fill()
         ctx.stroke()
     }
 }
@@ -170,7 +189,7 @@ class QPath {
         let x1 = points[0].x
         let y1 = points[0].y
         let x2 = x1
-        let y2 = y2
+        let y2 = y1
         for (let i = 1; i < n; i++) {
             let tx = points[i].x
             let ty = points[i].y
@@ -188,11 +207,23 @@ class QPath {
         return {x: x1, y: y1, width: x2 - x1, height: y2 - y1}
     }
     hitTest(pt) {
+        if (hitRect(pt, this.bound())) {
+            let points = this.points
+            let n = points.length
+            if (n > 1) {
+                let lineWidth = this.style.lineWidth
+                for (let i = 1; i < n; i++) {
+                    if (hitLine(pt, points[i-1], points[i], lineWidth)) {
+                        return {hitCode: 1, hitShape: this}
+                    }
+                }
+            }
+        }
         return {hitCode: 0, hitShape: null}
     }
     move(dx, dy) {
         let points = this.points
-        for (i in points) {
+        for (let i in points) {
             points[i].x += dx
             points[i].y += dy
         }
