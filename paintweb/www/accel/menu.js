@@ -34,28 +34,40 @@ function selection_setProp(key, val) {
     }
 }
 
-function onLineWidthChanged() {
-    let elem = document.getElementById("LineWidth")
+function onPropChanged(key) {
+    let elem = document.getElementById(key)
+    let val = elem.value
+    elem.blur()
+    qview.style[key] = val
+    selection_setProp(key, val)
+}
+
+function onIntPropChanged(key) {
+    let elem = document.getElementById(key)
     elem.blur()
     let val = parseInt(elem.value)
     if (val > 0) {
-        qview.style.lineWidth = val
-        selection_setProp("lineWidth", val)
+        qview.style[key] = val
+        selection_setProp(key, val)
     }
 }
 
-function onLineColorChanged() {
-    let elem = document.getElementById("LineColor")
-    let val = elem.value
-    elem.blur()
-    qview.style.lineColor = val
-    selection_setProp("lineColor", val)
+function onSelectionChanged(old) {
+    let selection = qview.selection
+    if (selection != null) {
+        let style = selection.style
+        qview.style = style.clone()
+        document.getElementById("lineWidth").value = style.lineWidth
+        document.getElementById("lineColor").value = style.lineColor
+        document.getElementById("fillColor").value = style.fillColor
+    }
 }
 
 function installPropSelectors() {
+    qview.onSelectionChanged = onSelectionChanged
     document.getElementById("menu").insertAdjacentHTML("afterend", `<br><div id="properties">
-    <label for="LineWidth">LineWidth: </label>
-    <select id="LineWidth" onchange="onLineWidthChanged()">
+    <label for="lineWidth">LineWidth: </label>
+    <select id="lineWidth" onchange="onIntPropChanged('lineWidth')">
         <option value="1">1</option>
         <option value="3">3</option>
         <option value="5">5</option>
@@ -64,8 +76,19 @@ function installPropSelectors() {
         <option value="11">11</option>
     </select>&nbsp;
 
-    <label for="LineColor">LineColor: </label>
-    <select id="LineColor" onchange="onLineColorChanged()">
+    <label for="lineColor">LineColor: </label>
+    <select id="lineColor" onchange="onPropChanged('lineColor')">
+        <option value="black">black</option>
+        <option value="red">red</option>
+        <option value="blue">blue</option>
+        <option value="green">green</option>
+        <option value="yellow">yellow</option>
+        <option value="gray">gray</option>
+    </select>&nbsp;
+
+    <label for="fillColor">FillColor: </label>
+    <select id="fillColor" onchange="onPropChanged('fillColor')">
+        <option value="white">white</option>
         <option value="black">black</option>
         <option value="red">red</option>
         <option value="blue">blue</option>
