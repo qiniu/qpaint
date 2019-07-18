@@ -27,21 +27,29 @@ function installControllers() {
 
 // ----------------------------------------------------------
 
+function selection_setProp(key, val) {
+    if (qview.selection != null) {
+        qview.selection.setProp(key, val)
+        invalidate(null)
+    }
+}
+
 function onLineWidthChanged() {
     let elem = document.getElementById("LineWidth")
     elem.blur()
     let val = parseInt(elem.value)
     if (val > 0) {
         qview.style.lineWidth = val
+        selection_setProp("lineWidth", val)
     }
-    qview.firePropChanged("lineWidth")
 }
 
 function onLineColorChanged() {
     let elem = document.getElementById("LineColor")
+    let val = elem.value
     elem.blur()
-    qview.style.lineColor = elem.value
-    qview.firePropChanged("lineColor")
+    qview.style.lineColor = val
+    selection_setProp("lineColor", val)
 }
 
 function installPropSelectors() {

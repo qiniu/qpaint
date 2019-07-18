@@ -4,12 +4,13 @@ class QPaintView {
         this.controllers = {}
         this._currentKey = ""
         this._current = null
+        this._selection = null
         this.onmousedown = null
         this.onmousemove = null
         this.onmouseup = null
         this.ondblclick = null
         this.onkeypress = null
-        this.onPropChanged = null
+        this.onSelectionChanged = null
         let drawing = document.getElementById("drawing")
         let view = this
         drawing.onmousedown = function(event) {
@@ -50,11 +51,16 @@ class QPaintView {
     get currentKey() {
         return this._currentKey
     }
-
-    onpaint(ctx) {
-        this.doc.onpaint(ctx)
-        if (this._current != null) {
-            this._current.onpaint(ctx)
+    get selection() {
+        return this._selection
+    }
+    set selection(shape) {
+        let old = this._selection
+        if (old != shape) {
+            this._selection = shape
+            if (this.onSelectionChanged != null) {
+                this.onSelectionChanged(old)
+            }
         }
     }
 
@@ -64,10 +70,11 @@ class QPaintView {
             y: event.offsetY
         }
     }
-
-    firePropChanged(propKey) {
-        if (this.onPropChanged != null) {
-            this.onPropChanged(propKey)
+ 
+    onpaint(ctx) {
+        this.doc.onpaint(ctx)
+        if (this._current != null) {
+            this._current.onpaint(ctx)
         }
     }
 

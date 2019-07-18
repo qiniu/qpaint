@@ -151,6 +151,13 @@ class QEllipse {
         }
     }
     hitTest(pt) {
+        let dx = pt.x - this.x
+        let dy = pt.y - this.y
+        let a = this.radiusX
+        let b = this.radiusY
+        if (dx*dx/a/a + dy*dy/b/b <= 1) {
+            return {hitCode: 1, hitShape: this}
+        }
         return {hitCode: 0, hitShape: null}
     }
     move(dx, dy) {

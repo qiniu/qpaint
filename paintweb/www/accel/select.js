@@ -1,6 +1,5 @@
 class QShapeSelector {
     constructor() {
-        this.selection = null
         this.started = false
         this.pt = {x: 0, y: 0}
         this.ptMove = {x: 0, y: 0}
@@ -9,14 +8,12 @@ class QShapeSelector {
         qview.onmousemove = function(event) { ctrl.onmousemove(event) }
         qview.onmouseup = function(event) { ctrl.onmouseup(event) }
         qview.onkeydown = function(event) { ctrl.onkeydown(event) }
-        qview.onPropChanged = function(propKey) { ctrl.onPropChanged(propKey) }
     }
     stop() {
         qview.onmousedown = null
         qview.onmousemove = null
         qview.onmouseup = null
         qview.onkeydown = null
-        qview.onPropChanged = null
         qview.drawing.style.cursor = "auto"
     }
 
@@ -28,8 +25,8 @@ class QShapeSelector {
         this.pt = this.ptMove = qview.getMousePos(event)
         this.started = true
         let ht = qview.doc.hitTest(this.pt)
-        if (this.selection != ht.hitShape) {
-            this.selection = ht.hitShape
+        if (qview.selection != ht.hitShape) {
+            qview.selection = ht.hitShape
             invalidate(null)
         }
     }
@@ -49,9 +46,10 @@ class QShapeSelector {
     }
     onmouseup(event) {
         if (this.started) {
-            if (this.selection != null) {
+            let selection = qview.selection
+            if (selection != null) {
                 let pt = qview.getMousePos(event)
-                this.selection.move(pt.x - this.pt.x, pt.y - this.pt.y)
+                selection.move(pt.x - this.pt.x, pt.y - this.pt.y)
             }
             this.reset()
             invalidate(null)
@@ -62,16 +60,11 @@ class QShapeSelector {
             this.reset()
         }
     }
-    onPropChanged(propKey) {
-        if (this.selection != null) {
-            this.selection.setProp(propKey, qview.style[propKey])
-            invalidate(null)
-        }
-    }
 
     onpaint(ctx) {
-        if (this.selection != null) {
-            let bound = this.selection.bound()
+        let selection = qview.selection
+        if (selection != null) {
+            let bound = selection.bound()
             if (this.started) {
                 bound.x += this.ptMove.x - this.pt.x
                 bound.y += this.ptMove.y - this.pt.y
