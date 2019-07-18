@@ -56,8 +56,15 @@ class QShapeSelector {
         }
     }
     onkeydown(event) {
-        if (event.keyCode == 27) { // keyEsc
+        console.log("keyCode:", event.keyCode)
+        switch (event.keyCode) {
+        case 8:  // keyBackSpace
+        case 46: // keyDelete
+            qview.doc.deleteShape(qview.selection)
+            qview.selection = null
+        case 27: // keyEsc
             this.reset()
+            break
         }
     }
 

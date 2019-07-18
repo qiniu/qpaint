@@ -51,6 +51,13 @@ function fill(ctx, fillColor) {
     }
 }
 
+function deleteItem(array, item) {
+    let index = array.indexOf(item)
+    if (index !== -1) {
+        array.splice(index, 1)
+    }
+}
+
 class QShapeStyle {
     constructor(lineWidth, lineColor, fillColor) {
         this.lineWidth = lineWidth
@@ -274,6 +281,9 @@ class QPaintDoc {
         if (shape != null) {
             this.shapes.push(shape)
         }
+    }
+    deleteShape(shape) {
+        deleteItem(this.shapes, shape)
     }
     hitTest(pt) {
         let shapes = this.shapes
