@@ -2,6 +2,7 @@
 
 function installControllers() {
     document.getElementById("menu").innerHTML = `
+    <input type="button" id="ShapeSelector" value="Select Shape" style="visibility:hidden">
     <input type="button" id="PathCreator" value="Create Path" style="visibility:hidden">
     <input type="button" id="FreePathCreator" value="Create FreePath" style="visibility:hidden">
     <input type="button" id="LineCreator" value="Create Line" style="visibility:hidden">
@@ -31,14 +32,16 @@ function onLineWidthChanged() {
     elem.blur()
     let val = parseInt(elem.value)
     if (val > 0) {
-        qview.properties.lineWidth = val
+        qview.style.lineWidth = val
     }
+    qview.firePropChanged("lineWidth")
 }
 
 function onLineColorChanged() {
     let elem = document.getElementById("LineColor")
     elem.blur()
-    qview.properties.lineColor = elem.value
+    qview.style.lineColor = elem.value
+    qview.firePropChanged("lineColor")
 }
 
 function installPropSelectors() {

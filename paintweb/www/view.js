@@ -1,9 +1,6 @@
 class QPaintView {
     constructor() {
-        this.properties = {
-            lineWidth: 1,
-            lineColor: "black"
-        }
+        this.style = new QShapeStyle(1, "black", "white")
         this.controllers = {}
         this._currentKey = ""
         this._current = null
@@ -12,6 +9,7 @@ class QPaintView {
         this.onmouseup = null
         this.ondblclick = null
         this.onkeypress = null
+        this.onPropChanged = null
         let drawing = document.getElementById("drawing")
         let view = this
         drawing.onmousedown = function(event) {
@@ -52,10 +50,6 @@ class QPaintView {
     get currentKey() {
         return this._currentKey
     }
-    get lineStyle() {
-        let props = this.properties
-        return new QLineStyle(props.lineWidth, props.lineColor)
-    }
 
     onpaint(ctx) {
         this.doc.onpaint(ctx)
@@ -68,6 +62,12 @@ class QPaintView {
         return {
             x: event.offsetX,
             y: event.offsetY
+        }
+    }
+
+    firePropChanged(propKey) {
+        if (this.onPropChanged != null) {
+            this.onPropChanged(propKey)
         }
     }
 
