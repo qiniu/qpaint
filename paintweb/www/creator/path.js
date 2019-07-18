@@ -21,6 +21,7 @@ class QPathCreator {
         this.points = []
         this.started = false
         invalidate(null)
+        qview.fireControllerReset()
     }
     buildShape() {
         let points = [{x: this.fromPos.x, y: this.fromPos.y}]

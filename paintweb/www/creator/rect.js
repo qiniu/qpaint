@@ -22,6 +22,7 @@ class QRectCreator {
     reset() {
         this.started = false
         invalidate(this.rect)
+        qview.fireControllerReset()
     }
     buildShape() {
         let rect = this.rect

@@ -11,6 +11,7 @@ class QPaintView {
         this.ondblclick = null
         this.onkeypress = null
         this.onSelectionChanged = null
+        this.onControllerReset = null
         let drawing = document.getElementById("drawing")
         let view = this
         drawing.onmousedown = function(event) {
@@ -103,6 +104,11 @@ class QPaintView {
         if (this._current != null) {
             this._current.stop()
             this._setCurrent("", null)
+        }
+    }
+    fireControllerReset() {
+        if (this.onControllerReset != null) {
+            this.onControllerReset()
         }
     }
 
