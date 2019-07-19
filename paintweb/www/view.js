@@ -11,7 +11,7 @@ class QPaintView {
         this.onmousemove = null
         this.onmouseup = null
         this.ondblclick = null
-        this.onkeypress = null
+        this.onkeydown = null
         let drawing = document.getElementById("drawing")
         let view = this
         drawing.onmousedown = function(event) {
