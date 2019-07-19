@@ -9,7 +9,7 @@ class QPaintView {
         this.onmousemove = null
         this.onmouseup = null
         this.ondblclick = null
-        this.onkeypress = null
+        this.onkeydown = null
         this.onSelectionChanged = null
         this.onControllerReset = null
         let drawing = document.getElementById("drawing")
