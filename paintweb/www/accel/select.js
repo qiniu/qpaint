@@ -56,7 +56,6 @@ class QShapeSelector {
         }
     }
     onkeydown(event) {
-        console.log("keyCode:", event.keyCode)
         switch (event.keyCode) {
         case 8:  // keyBackSpace
         case 46: // keyDelete
