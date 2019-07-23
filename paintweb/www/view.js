@@ -47,6 +47,8 @@ class QPaintView {
         }
         this.drawing = drawing
         this.doc = new QPaintDoc()
+        this.doc.init()
+        this.invalidateRect(null)
     }
 
     get currentKey() {
