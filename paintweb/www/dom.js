@@ -106,7 +106,10 @@ function localStorage_setItem(key, val) {
     try {
         localStorage.setItem(key, val)
     } catch (e) {
-        removeSomeCache()
+        if (e.name == 'QuotaExceededError') {
+            removeSomeCache()
+            localStorage.setItem(key, val)
+        }
     }
 }
 
@@ -451,7 +454,6 @@ class QPaintDoc {
         this.localID = _makeLocalDrawingID()
         this.displayID = "t" + this.localID
         window.location.hash = "#" + this.displayID
-        removeSomeCache()
     }
 
     addShape(shape) {
