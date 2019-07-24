@@ -56,7 +56,7 @@ class QPathCreator {
     onkeydown(event) {
         switch (event.keyCode) {
         case 13: // keyEnter
-            this.points.push(this.toPos)
+            this.points.push(Object.assign({}, this.toPos))
             this.ondblclick(event)
             break
         case 27: // keyEsc
