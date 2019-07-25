@@ -390,12 +390,15 @@ class QPath {
 
 class QPaintDoc {
     constructor() {
+        this._reset()
+    }
+
+    _reset() {
         this._shapes = []
         this._idShapeBase = 0
         this.localID = ""
         this.displayID = ""
     }
-
     _load(localID) {
         this.localID = localID
         let o = loadDrawing(localID)
@@ -454,6 +457,10 @@ class QPaintDoc {
         this.localID = _makeLocalDrawingID()
         this.displayID = "t" + this.localID
         window.location.hash = "#" + this.displayID
+    }
+    reload() {
+        this._reset()
+        this.init()
     }
 
     addShape(shape) {
