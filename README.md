@@ -2,6 +2,8 @@
 
 ## QPaint DOM (第 29 讲)
 
+### 网络协议
+
 | 功能 | 请求包 | 返回包 |
 | ------------- | ---------- | ------------- |
 | 创建新drawing | POST /drawings | 200 OK<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;"id": `<DrawingID>`<br>} |
