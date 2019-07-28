@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
+	"github.com/qiniu/qpaint/paintdom"
 )
 
 func newReverseProxy(baseURL string) *httputil.ReverseProxy {
@@ -26,6 +28,7 @@ var (
 )
 
 func main() {
+	go paintdom.Main()
 	http.Handle("/api/", http.StripPrefix("/api/", apiReverseProxy))
 	http.HandleFunc("/", handleDefault)
 	http.ListenAndServe(":8888", nil)
