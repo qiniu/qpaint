@@ -202,6 +202,8 @@ func ReplyError(w http.ResponseWriter, err error) {
 		Reply(w, 404, M{"error": "entry not found"})
 	} else if err == syscall.EINVAL {
 		Reply(w, 400, M{"error": "invalid arguments"})
+	} else if err == syscall.EEXIST {
+		Reply(w, 409, M{"error": "entry already exists"})
 	} else {
 		Reply(w, 500, M{"error": err.Error()})
 	}

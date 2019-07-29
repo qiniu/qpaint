@@ -72,6 +72,9 @@ func (p *Drawing) Add(shape Shape) (err error) {
 	}
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+	if _, ok := p.shapes[id]; ok {
+		return syscall.EEXIST
+	}
 	p.list.insertBack(dgshape)
 	p.shapes[id] = dgshape
 	return
