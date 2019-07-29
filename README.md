@@ -1,8 +1,78 @@
 # QPaint (by Qiniu.com)
 
-## QPaint DOM
+## QPaint DOM (第 29 讲)
 
-* TODO
+### 网络协议
+
+| 功能 | 请求包 | 返回包 |
+| ------------- | ---------- | ------------- |
+| 创建新drawing | POST /drawings | 200 OK<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;"id": `<DrawingID>`<br>} |
+| 获得drawing | GET /drawings/`<DrawingID>` | 200 OK<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;"shapes": [<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"id": `<ShapeID>`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<Shape>`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...<br>&nbsp;&nbsp;&nbsp;&nbsp;]<br>} |
+| 删除drawing | DELETE /drawings/`<DrawingID>` | 200 OK |
+| 创建新shape | POST /drawings/`<DrawingID>`/shapes<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;"id": `<ShapeID>`,<br>&nbsp;&nbsp;&nbsp;&nbsp;`<Shape>`<br>} | 200 OK |
+| 取得shape | GET /drawings/`<DrawingID>`/shapes/`<ShapeID>` | 200 OK<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;`<Shape>`<br>} |
+| 修改shape | POST /drawings/`<DrawingID>`/shapes/`<ShapeID>`<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;`<Shape>`<br>} | 200 OK |
+| 修改shape的顺序 | POST /drawings/`<DrawingID>`/shapes/`<ShapeID>`<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;"zorder": `<ZorderOperation>`<br>} | 200 OK |
+| 删除shape | DELETE /drawings/`<DrawingID>`/shapes/`<ShapeID>` | 200 OK |
+|
+
+其中 `<Shape>` 是这样的：
+
+```
+"path": {
+    "points": [
+        {"x": <X>, "y": <Y>},
+        ...
+    ],
+    "close": <Boolean>,
+    "style": <ShapeStyle>
+}
+```
+或:
+```
+"line": {
+    "pt1": {"x": <X>, "y": <Y>},
+    "pt2": {"x": <X>, "y": <Y>},
+    "style": <ShapeStyle>
+}
+```
+或：
+```
+"rect": {
+    "x": <X>,
+    "y": <Y>,
+    "width": <Width>,
+    "height": <Height>,
+    "style": <ShapeStyle>
+}
+```
+或：
+```
+"ellipse": {
+    "x": <X>,
+    "y": <Y>,
+    "width": <Width>,
+    "height": <Height>,
+    "style": <ShapeStyle>
+}
+```
+
+其中 `<ShapeStyle>` 是这样的：
+
+```
+{
+    "lineWidth": <Width>,  // 线宽
+    "lineColor": <Color>,  // 线型颜色
+    "fillColor": <Color>   // 填充色
+}
+```
+
+其中 `<ZorderOperation>` 可能的值为：
+
+* "top": 到最顶
+* "bottom": 到最底
+* "front": 往前一层
+* "back": 往后一层
 
 ## QPaint Web (第 27 讲)
 
