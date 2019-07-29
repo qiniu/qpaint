@@ -14,7 +14,6 @@
 | 修改shape | POST /drawings/`<DrawingID>`/shapes/`<ShapeID>`<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;`<Shape>`<br>} | 200 OK |
 | 修改shape的顺序 | POST /drawings/`<DrawingID>`/shapes/`<ShapeID>`<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;"zorder": `<ZorderOperation>`<br>} | 200 OK |
 | 删除shape | DELETE /drawings/`<DrawingID>`/shapes/`<ShapeID>` | 200 OK |
-|
 
 其中 `<Shape>` 是这样的：
 
