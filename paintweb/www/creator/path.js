@@ -56,7 +56,7 @@ class QPathCreator {
         switch (event.keyCode) {
         case 13: // keyEnter
             let n = this.points.length
-            if (n > 0 && this.points[n-1] !== this.toPos) {
+            if (n == 0 || this.points[n-1] !== this.toPos) {
                 this.points.push(this.toPos)
             }
             this.ondblclick(event)
