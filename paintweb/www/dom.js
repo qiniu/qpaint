@@ -136,17 +136,24 @@ function _makeLocalDrawingID() {
     return val
 }
 
+function removeCache(clearID) {
+    let key = "dg:" + clearID
+    let doc = localStorage.getItem(key)
+    if (doc != null) {
+        let o = JSON.parse(doc)
+        for (let i in o.shapes) {
+            localStorage.removeItem(o.id + ":" + o.shapes[i])
+        }
+        localStorage.removeItem(key)
+        return true
+    }
+    return false
+}
+
 function removeSomeCache() {
     let clearID = _getNextID("dgClear")
     for (i = 0; i < 32; i++) {
-        let key = "dg:" + clearID
-        let doc = localStorage.getItem(key)
-        if (doc != null) {
-            let o = JSON.parse(doc)
-            for (let i in o.shapes) {
-                localStorage.removeItem(o.id + ":" + o.shapes[i])
-            }
-            localStorage.removeItem(key)
+        if (removeCache(clearID)) {
             localStorage.setItem("dgClear", clearID)
             return
         }
@@ -206,6 +213,12 @@ class QSynchronizer {
         this.started = old
     }
 
+    fireLoaded(doc) {
+        let baseVerKey = "ver:" + doc.localID
+        localStorage_setItem(baseVerKey, doc.ver.toString())
+        this.dirty = false
+        doc.ver++
+    }
     fireChanged(doc) {
         this.dirty = true
         if (this.started) {
@@ -712,17 +725,18 @@ class QPaintDoc {
         let localID = localStorage.getItem(localIDKey)
         if (localID != null) {
             this._load(localID)
-            return
+        } else {
+            this.localID = _makeLocalDrawingID()
         }
         let doc = this
         callAsync("GET", "/api/drawings/" + displayID, [], null, function() {
             let o = JSON.parse(http.responseText)
-            doc.localID = _makeLocalDrawingID()
+            removeCache(localID)
             doc.syncer.noflush(function() {
                 doc._loadRemoteDrawing(o)
             })
             localStorage_setItem(localIDKey, doc.localID)
-            doc.syncer.dirty = false
+            doc.syncer.fireLoaded(doc)
             if (doc.onload != null) {
                 doc.onload()
             }

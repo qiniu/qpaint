@@ -39,7 +39,7 @@ func NewService(doc *Document) (p *Service) {
 func (p *Service) PostDrawingSync(w http.ResponseWriter, req *http.Request, args []string) {
 	b := bytes.NewBuffer(nil)
 	io.Copy(b, req.Body)
-	log.Println("sync:", b.String())
+	log.Println(req.Method, req.URL, b.String())
 
 	var ds serviceDrawingSync
 	err := json.NewDecoder(b).Decode(&ds)
@@ -63,16 +63,17 @@ func (p *Service) PostDrawingSync(w http.ResponseWriter, req *http.Request, args
 }
 
 func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []string) {
+	log.Println(req.Method, req.URL)
 	drawing, err := p.doc.Add()
 	if err != nil {
 		ReplyError(w, err)
 		return
 	}
-	log.Println("new drawing:", drawing.ID)
 	Reply(w, 200, M{"id": drawing.ID})
 }
 
 func (p *Service) GetDrawing(w http.ResponseWriter, req *http.Request, args []string) {
+	log.Println(req.Method, req.URL)
 	id := args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
@@ -227,12 +228,14 @@ func Reply(w http.ResponseWriter, code int, data interface{}) {
 	header.Set("Content-Length", strconv.Itoa(len(b)))
 	w.WriteHeader(code)
 	w.Write(b)
+	log.Println("REPLY", code, string(b))
 }
 
 func ReplyCode(w http.ResponseWriter, code int) {
 	header := w.Header()
 	header.Set("Content-Length", "0")
 	w.WriteHeader(code)
+	log.Println("REPLY", code)
 }
 
 func ReplyError(w http.ResponseWriter, err error) {
