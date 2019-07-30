@@ -102,6 +102,10 @@ function localStorage_getIntItem(key, defaultVal) {
     }
 }
 
+function _isTempDoc(displayID) {
+    return displayID.charAt(0) == 't'
+}
+
 function _getNextID(key) {
     let dgBase = localStorage_getIntItem(key, 10000) + 1
     return dgBase.toString()
@@ -146,6 +150,29 @@ function localStorage_setItem(key, val) {
 
 var http = new XMLHttpRequest()
 
+function callAsync(method, url, headers, body, onOK) {
+    let doFunc = function() {
+        http.open(method, url)
+        for (let i in headers) {
+            let header = headers[i]
+            http.setRequestHeader(header.key, header.value)
+        }
+        http.onreadystatechange = function() {
+            if (http.readyState != 4) {
+                return
+            }
+            if (http.status == 200) {
+                onOK()
+            } else {
+                console.log(method, url, ", status:", http.status, "-", http.statusText)
+                setTimeout(doFunc, 1000)
+            }
+        }
+        http.send(body)
+    }
+    doFunc()
+}
+
 class QSynchronizer {
     constructor() {
         this.intervalHandler = null
@@ -156,6 +183,11 @@ class QSynchronizer {
             clearInterval(this.intervalHandler)
             this.intervalHandler = null
         }
+    }
+    noflush(doSth) {
+        this.intervalHandler = 1
+        doSth()
+        this.intervalHandler = null
     }
 
     fireChanged(doc) {
@@ -186,11 +218,14 @@ class QSynchronizer {
                 } else {
                     console.log("QSynchronizer.sync status:", http.status, "-", http.statusText)
                     syncer.dirty = true
+                    if (this.intervalHandler == null) {
+                        this.intervalHandler = setInterval(syncFunc, 1000)
+                    }
                 }
             }
             http.send(o)
         }
-        syncer.intervalHandler = setInterval(syncFunc, 500)
+        syncFunc()
     }
 }
 
@@ -219,7 +254,6 @@ function loadShape(parent, id) {
 }
 
 function shapeChanged(parent, shape) {
-    console.log("shapeChanged:", shape)
     if (shape.id != "") {
         shape.ver = parent.ver
         let val = JSON.stringify(shape)
@@ -600,12 +634,7 @@ class QPaintDoc {
         shape.id = this._idShapeBase.toString()
         return shape
     }
-    _load(localID) {
-        this.localID = localID
-        let o = loadDrawing(localID)
-        if (o == null) {
-            return
-        }
+    _loadDrawing(o, doFireChanged) {
         let shapes = []
         for (let i in o.shapes) {
             let shapeID = o.shapes[i]
@@ -615,10 +644,41 @@ class QPaintDoc {
             }
             shape.id = shapeID
             shapes.push(shape)
+            if (doFireChanged) {
+                this.shapeChanged(this, shape)
+            }
         }
         this._shapes = shapes
+        if (doFireChanged) {
+            this.documentChanged(this)
+        }
+    }
+    _load(localID) {
+        this.localID = localID
+        let o = loadDrawing(localID)
+        if (o == null) {
+            return
+        }
+        this._loadDrawing(o)
         this._idShapeBase = o.shapeBase
         this.ver = o.ver
+    }
+    _loadRemote(displayID) {
+        this.displayID = displayID
+        let localID = localStorage.getItem("local:" + displayID)
+        if (localID != null) {
+            this._load(localID)
+            return
+        }
+        let doc = this
+        callAsync("GET", "/api/drawings/" + displayID, [], null, function() {
+            let o = JSON.parse(http.responseText)
+            doc.localID = _makeLocalDrawingID()
+            doc.syncer.noflush(function() {
+                doc._loadDrawing(o, true)
+            })
+            doc.syncer.dirty = false
+        })
     }
 
     toJSON() {
@@ -661,14 +721,24 @@ class QPaintDoc {
         }
         let hash = window.location.hash
         if (hash != "") { // #t[localID]
-            this.displayID = hash.substring(1)
-            this.localID = this.displayID.substring(1)
-            this._load(this.localID)
+            let displayID = hash.substring(1)
+            if (_isTempDoc(displayID)) {
+                this._load(displayID.substring(1))
+                this.displayID = displayID
+            } else {
+                this._loadRemote(displayID)
+            }
             return
         }
         this.localID = _makeLocalDrawingID()
         this.displayID = "t" + this.localID
         window.location.hash = "#" + this.displayID
+        let doc = this
+        callAsync("POST", "/api/drawings", [], null, function() {
+            let o = JSON.parse(http.responseText)
+            doc.displayID = o.id
+            window.location.hash = "#" + doc.displayID
+        })
     }
     reload() {
         this.syncer.stop()
