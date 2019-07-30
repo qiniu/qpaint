@@ -28,7 +28,7 @@ func TestRectEncode(t *testing.T) {
 func TestEllipseEncode(t *testing.T) {
 	val := new(Ellipse)
 	b, _ := json.Marshal(val)
-	if string(b) != `{"id":"","ellipse":{"x":0,"y":0,"width":0,"height":0,"style":{"lineWidth":0,"lineColor":"","fillColor":""}}}` {
+	if string(b) != `{"id":"","ellipse":{"x":0,"y":0,"radiusX":0,"radiusY":0,"style":{"lineWidth":0,"lineColor":"","fillColor":""}}}` {
 		t.Error("unexpected: json.Marshal ellipse:", string(b))
 	}
 }
