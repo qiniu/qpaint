@@ -79,11 +79,11 @@ type Ellipse struct {
 }
 
 type ellipseData struct {
-	X      coord     `json:"x"`
-	Y      coord     `json:"y"`
-	Width  coord      `json:"width"`
-	Height coord      `json:"height"`
-	Style  ShapeStyle `json:"style"`
+	X       coord      `json:"x"`
+	Y       coord      `json:"y"`
+	RadiusX coord      `json:"radiusX"`
+	RadiusY coord      `json:"radiusY"`
+	Style   ShapeStyle `json:"style"`
 }
 
 // ---------------------------------------------------

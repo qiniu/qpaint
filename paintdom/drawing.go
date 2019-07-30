@@ -61,6 +61,7 @@ type Drawing struct {
 func newDrawing(id string) *Drawing {
 	shapes := make(map[ShapeID]*shapeOnDrawing)
 	return &Drawing{
+		ID: id,
 		shapes: shapes,
 	}
 }

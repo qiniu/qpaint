@@ -38,7 +38,7 @@ func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []
 		ReplyError(w, err)
 		return
 	}
-	Reply(w, 200, M{"id:": drawing.ID})
+	Reply(w, 200, M{"id": drawing.ID})
 }
 
 func (p *Service) GetDrawing(w http.ResponseWriter, req *http.Request, args []string) {
