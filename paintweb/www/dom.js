@@ -171,6 +171,7 @@ function loadShape(parent, id) {
 
 function shapeChanged(parent, shape) {
     if (shape.id != "") {
+        shape.ver = parent.ver
         let val = JSON.stringify(shape)
         localStorage_setItem(parent.localID+":"+shape.id, val)
     }
@@ -204,6 +205,7 @@ class QLine {
             this.pt1 = point1
             this.pt2 = point2
             this.style = style
+            this.ver = 0
             this.id = ""
         } else {
             let o = point1.line
@@ -211,6 +213,7 @@ class QLine {
             this.pt1 = o.pt1
             this.pt2 = o.pt2
             this.style = newShapeStyle(o.style)
+            this.ver = o.ver
         }
     }
     toJSON() {
@@ -219,7 +222,8 @@ class QLine {
             line: {
                 pt1: this.pt1,
                 pt2: this.pt2,
-                style: this.style
+                style: this.style,
+                ver: this.ver
             }
         }
     }
@@ -270,6 +274,7 @@ class QRect {
             this.width = r.width
             this.height = r.height
             this.style = style
+            this.ver = 0
             this.id = ""
         } else {
             let o = r.rect
@@ -279,6 +284,7 @@ class QRect {
             this.width = o.width
             this.height = o.height
             this.style = newShapeStyle(o.style)
+            this.ver = o.ver
         }
     }
     toJSON() {
@@ -289,7 +295,8 @@ class QRect {
                 y: this.y,
                 width: this.width,
                 height: this.height,
-                style: this.style
+                style: this.style,
+                ver: this.ver
             }
         }
     }
@@ -338,15 +345,17 @@ class QEllipse {
             this.radiusX = radiusX
             this.radiusY = radiusY
             this.style = style
+            this.ver = 0
             this.id = ""
         } else {
-            let o = r.x
+            let o = x.ellipse
             this.id = x.id
             this.x = o.x
             this.y = o.y
             this.radiusX = o.radiusX
             this.radiusY = o.radiusY
             this.style = newShapeStyle(o.style)
+            this.ver = o.ver
         }
     }
     toJSON() {
@@ -357,7 +366,8 @@ class QEllipse {
                 y: this.y,
                 radiusX: this.radiusX,
                 radiusY: this.radiusY,
-                style: this.style
+                style: this.style,
+                ver: this.ver
             }
         }
     }
@@ -413,6 +423,7 @@ class QPath {
             this.points = points
             this.close = close
             this.style = style
+            this.ver = 0
             this.id = ""
         } else {
             let o = points.path
@@ -420,6 +431,7 @@ class QPath {
             this.points = o.points
             this.close = o.close
             this.style = newShapeStyle(o.style)
+            this.ver = o.ver
         }
     }
     toJSON() {
@@ -428,7 +440,8 @@ class QPath {
             path: {
                 points: this.points,
                 close: this.close,
-                style: this.style
+                style: this.style,
+                ver: this.ver
             }
         }
     }
@@ -524,6 +537,7 @@ class QPaintDoc {
         this._idShapeBase = 0
         this.localID = ""
         this.displayID = ""
+        this.ver = 1
     }
     _load(localID) {
         this.localID = localID
@@ -543,6 +557,7 @@ class QPaintDoc {
         }
         this._shapes = shapes
         this._idShapeBase = o.shapeBase
+        this.ver = o.ver
     }
     _stringify() {
         let shapeIDs = []
@@ -553,7 +568,8 @@ class QPaintDoc {
         return JSON.stringify({
             id: this.localID,
             shapeBase: this._idShapeBase,
-            shapes: shapeIDs
+            shapes: shapeIDs,
+            ver: this.ver
         })
     }
     _initShape(shape) {
