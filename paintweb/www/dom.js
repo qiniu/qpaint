@@ -524,7 +524,6 @@ class QPaintDoc {
         this._idShapeBase = 0
         this.localID = ""
         this.displayID = ""
-        this._cl = null
     }
     _load(localID) {
         this.localID = localID
@@ -577,13 +576,11 @@ class QPaintDoc {
             this.displayID = hash.substring(1)
             this.localID = this.displayID.substring(1)
             this._load(this.localID)
-            this._cl = new ChangeLog(this.localID)
             return
         }
         this.localID = _makeLocalDrawingID()
         this.displayID = "t" + this.localID
         window.location.hash = "#" + this.displayID
-        this._cl = new ChangeLog(this.localID)
     }
     reload() {
         this._reset()
