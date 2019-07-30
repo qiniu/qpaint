@@ -50,8 +50,8 @@
 "ellipse": {
     "x": <X>,
     "y": <Y>,
-    "width": <Width>,
-    "height": <Height>,
+    "radiusX": <RadiusX>,
+    "radiusY": <RadiusY>,
     "style": <ShapeStyle>
 }
 ```
