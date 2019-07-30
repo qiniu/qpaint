@@ -195,6 +195,9 @@ class QSynchronizer {
         if (this.intervalHandler != null) {
             return
         }
+        if (_isTempDoc(doc.displayID)) {
+            return
+        }
         let syncUrl = "/api/drawings/" + doc.displayID + "/sync"
         let baseVerKey = "ver:" + doc.localID
         let syncer = this
@@ -645,12 +648,12 @@ class QPaintDoc {
             shape.id = shapeID
             shapes.push(shape)
             if (doFireChanged) {
-                this.shapeChanged(this, shape)
+                shapeChanged(this, shape)
             }
         }
         this._shapes = shapes
         if (doFireChanged) {
-            this.documentChanged(this)
+            documentChanged(this)
         }
     }
     _load(localID) {
@@ -665,7 +668,8 @@ class QPaintDoc {
     }
     _loadRemote(displayID) {
         this.displayID = displayID
-        let localID = localStorage.getItem("local:" + displayID)
+        let localIDKey = "local:" + displayID
+        let localID = localStorage.getItem(localIDKey)
         if (localID != null) {
             this._load(localID)
             return
@@ -677,8 +681,29 @@ class QPaintDoc {
             doc.syncer.noflush(function() {
                 doc._loadDrawing(o, true)
             })
+            localStorage_setItem(localIDKey, localID)
             doc.syncer.dirty = false
         })
+    }
+    _newDoc() {
+        this.displayID = "t" + this.localID
+        window.location.hash = "#" + this.displayID
+        let doc = this
+        callAsync("POST", "/api/drawings", [], null, function() {
+            let o = JSON.parse(http.responseText)
+            doc.displayID = o.id
+            let localIDKey = "local:" + doc.displayID
+            localStorage_setItem(localIDKey, doc.localID)
+            window.location.hash = "#" + doc.displayID
+        })
+    }
+    _loadBlank() {
+        this.localID = _makeLocalDrawingID()
+        this._newDoc()
+    }
+    _loadTempDoc(localID) {
+        this._load(localID)
+        this._newDoc()
     }
 
     toJSON() {
@@ -720,25 +745,16 @@ class QPaintDoc {
             return
         }
         let hash = window.location.hash
-        if (hash != "") { // #t[localID]
-            let displayID = hash.substring(1)
-            if (_isTempDoc(displayID)) {
-                this._load(displayID.substring(1))
-                this.displayID = displayID
-            } else {
-                this._loadRemote(displayID)
-            }
+        if (hash == "") {
+            this._loadBlank()
             return
         }
-        this.localID = _makeLocalDrawingID()
-        this.displayID = "t" + this.localID
-        window.location.hash = "#" + this.displayID
-        let doc = this
-        callAsync("POST", "/api/drawings", [], null, function() {
-            let o = JSON.parse(http.responseText)
-            doc.displayID = o.id
-            window.location.hash = "#" + doc.displayID
-        })
+        let displayID = hash.substring(1) // #t[localID]
+        if (_isTempDoc(displayID)) {
+            this._loadTempDoc(displayID.substring(1))
+        } else {
+            this._loadRemote(displayID)
+        }
     }
     reload() {
         this.syncer.stop()
