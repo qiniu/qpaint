@@ -45,14 +45,16 @@ class QPaintView {
                 view.onkeydown(event)
             }
         }
-        window.onhashchange = function(event) {
+        window_onhashchange(function(event) {
             view.doc.reload()
             view.invalidateRect(null)
-        }
+        })
         this.drawing = drawing
         this.doc = new QPaintDoc()
+        this.doc.onload = function() {
+            view.invalidateRect(null)
+        }
         this.doc.init()
-        this.invalidateRect(null)
     }
 
     get currentKey() {

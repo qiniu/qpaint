@@ -15,6 +15,10 @@ type shapeOnDrawing struct {
 	data  Shape
 }
 
+func (p *shapeOnDrawing) init() {
+	p.front, p.back = p, p
+}
+
 func (p *shapeOnDrawing) insertFront(shape *shapeOnDrawing) {
 	shape.back = p
 	shape.front = p.front
@@ -59,11 +63,41 @@ type Drawing struct {
 }
 
 func newDrawing(id string) *Drawing {
-	shapes := make(map[ShapeID]*shapeOnDrawing)
-	return &Drawing{
+	p := &Drawing{
 		ID: id,
-		shapes: shapes,
+		shapes: make(map[ShapeID]*shapeOnDrawing),
 	}
+	p.list.init()
+	return p
+}
+
+func (p *Drawing) Sync(shapes []ShapeID, changes []Shape) (err error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	dgshapes := make([]*shapeOnDrawing, len(shapes))
+	for i, id := range shapes {
+		if dgshape, ok := p.shapes[id]; ok {
+			dgshape.delete()
+			dgshapes[i] = dgshape
+		} else {
+			dgshape := new(shapeOnDrawing)
+			dgshapes[i] = dgshape
+			p.shapes[id] = dgshape
+		}
+	}
+	head := &p.list
+	for item := head.front; item != head; item = item.front {
+		delete(p.shapes, item.data.GetID())
+	}
+	head.init()
+	for _, dgshape := range dgshapes {
+		head.insertBack(dgshape)
+	}
+	for _, change := range changes {
+		id := change.GetID()
+		p.shapes[id].data = change
+	}
+	return
 }
 
 func (p *Drawing) Add(shape Shape) (err error) {
@@ -156,7 +190,8 @@ func (p *Drawing) Delete(id ShapeID) (err error) {
 // ---------------------------------------------------
 
 type Document struct {
-	data map[string]*Drawing
+	mutex sync.Mutex
+	data  map[string]*Drawing
 }
 
 func NewDocument() *Document {
@@ -169,11 +204,15 @@ func NewDocument() *Document {
 func (p *Document) Add() (drawing *Drawing, err error) {
 	id := makeDrawingID()
 	drawing = newDrawing(id)
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.data[id] = drawing
 	return
 }
 
 func (p *Document) Get(id string) (drawing *Drawing, err error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	drawing, ok := p.data[id]
 	if !ok {
 		return nil, syscall.ENOENT
@@ -182,8 +221,18 @@ func (p *Document) Get(id string) (drawing *Drawing, err error) {
 }
 
 func (p *Document) Delete(id string) (err error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	delete(p.data, id)
 	return
+}
+
+func (p *Document) Sync(id string, shapes []ShapeID, changes []Shape) (err error) {
+	drawing, ok := p.data[id]
+	if !ok {
+		return syscall.ENOENT
+	}
+	return drawing.Sync(shapes, changes)
 }
 
 // ---------------------------------------------------

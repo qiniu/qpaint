@@ -67,6 +67,25 @@ function deleteItem(array, item) {
 
 // ----------------------------------------------------------
 
+var _eatNextHashChangeEvent = false
+
+function window_onhashchange(handle) {
+    window.onhashchange = function(event) {
+        if (_eatNextHashChangeEvent) {
+            _eatNextHashChangeEvent = false
+            return
+        }
+        handle(event)
+    }
+}
+
+function window_setHash(hash) {
+    _eatNextHashChangeEvent = true
+    window.location.hash = hash
+}
+
+// ----------------------------------------------------------
+
 class QSerializer {
     constructor() {
         this.creators = {}
@@ -151,6 +170,7 @@ function localStorage_setItem(key, val) {
 var http = new XMLHttpRequest()
 
 function callAsync(method, url, headers, body, onOK) {
+    let timeout = 1000
     let doFunc = function() {
         http.open(method, url)
         for (let i in headers) {
@@ -165,7 +185,8 @@ function callAsync(method, url, headers, body, onOK) {
                 onOK()
             } else {
                 console.log(method, url, ", status:", http.status, "-", http.statusText)
-                setTimeout(doFunc, 1000)
+                setTimeout(doFunc, timeout)
+                timeout *= 2
             }
         }
         http.send(body)
@@ -175,24 +196,19 @@ function callAsync(method, url, headers, body, onOK) {
 
 class QSynchronizer {
     constructor() {
-        this.intervalHandler = null
+        this.started = false
         this.dirty = false
     }
-    stop() {
-        if (this.intervalHandler != null) {
-            clearInterval(this.intervalHandler)
-            this.intervalHandler = null
-        }
-    }
     noflush(doSth) {
-        this.intervalHandler = 1
+        let old = this.started
+        this.started = true
         doSth()
-        this.intervalHandler = null
+        this.started = old
     }
 
     fireChanged(doc) {
         this.dirty = true
-        if (this.intervalHandler != null) {
+        if (this.started) {
             return
         }
         if (_isTempDoc(doc.displayID)) {
@@ -200,10 +216,11 @@ class QSynchronizer {
         }
         let syncUrl = "/api/drawings/" + doc.displayID + "/sync"
         let baseVerKey = "ver:" + doc.localID
+        let timeout = 1000
         let syncer = this
         let syncFunc = function() {
             if (!syncer.dirty) {
-                syncer.stop()
+                syncer.started = false
                 return
             }
             syncer.dirty = false
@@ -219,15 +236,15 @@ class QSynchronizer {
                     localStorage_setItem(baseVerKey, o.ver.toString())
                     syncFunc()
                 } else {
-                    console.log("QSynchronizer.sync status:", http.status, "-", http.statusText)
+                    console.log("QSynchronizer.sync status:", http.status, "-", http.statusText, "body:", o)
                     syncer.dirty = true
-                    if (this.intervalHandler == null) {
-                        this.intervalHandler = setInterval(syncFunc, 1000)
-                    }
+                    setTimeout(syncFunc, timeout)
+                    timeout *= 2
                 }
             }
-            http.send(o)
+            http.send(JSON.stringify(o))
         }
+        syncer.started = true
         syncFunc()
     }
 }
@@ -239,11 +256,14 @@ function loadDrawing(localID) {
     return JSON.parse(val)
 }
 
-function documentChanged(doc) {
+function documentChanged(doc, noSync) {
     if (doc.localID != "") {
         let val = JSON.stringify(doc)
         localStorage_setItem("dg:"+doc.localID, val)
-        doc.syncer.fireChanged(doc)
+        noSync = noSync || false
+        if (!noSync) {
+            doc.syncer.fireChanged(doc)
+        }
     }
 }
 
@@ -256,12 +276,15 @@ function loadShape(parent, id) {
     return qshapes.create(o)
 }
 
-function shapeChanged(parent, shape) {
+function shapeChanged(parent, shape, noSync) {
     if (shape.id != "") {
         shape.ver = parent.ver
         let val = JSON.stringify(shape)
         localStorage_setItem(parent.localID+":"+shape.id, val)
-        parent.syncer.fireChanged(parent)
+        noSync = noSync || false
+        if (!noSync) {
+            parent.syncer.fireChanged(parent)
+        }
     }
 }
 
@@ -627,6 +650,7 @@ class QPaintDoc {
         this.displayID = ""
         this.ver = 1
         this.syncer = new QSynchronizer()
+        this.onload = null
     }
     _initShape(shape) {
         if (shape.id != "") {
@@ -637,7 +661,7 @@ class QPaintDoc {
         shape.id = this._idShapeBase.toString()
         return shape
     }
-    _loadDrawing(o, doFireChanged) {
+    _loadDrawing(o) {
         let shapes = []
         for (let i in o.shapes) {
             let shapeID = o.shapes[i]
@@ -647,14 +671,27 @@ class QPaintDoc {
             }
             shape.id = shapeID
             shapes.push(shape)
-            if (doFireChanged) {
-                shapeChanged(this, shape)
-            }
         }
         this._shapes = shapes
-        if (doFireChanged) {
-            documentChanged(this)
+    }
+    _loadRemoteDrawing(o) {
+        let shapes = []
+        let idShapeBase = 0
+        for (let i in o.shapes) {
+            let shape = qshapes.create(o.shapes[i])
+            if (shape == null) {
+                continue
+            }
+            let id = parseInt(shape.id)
+            if (id > idShapeBase) {
+                idShapeBase = id
+            }
+            shapes.push(shape)
+            shapeChanged(this, shape, true)
         }
+        this._shapes = shapes
+        this._idShapeBase = idShapeBase
+        documentChanged(this, true)
     }
     _load(localID) {
         this.localID = localID
@@ -665,6 +702,9 @@ class QPaintDoc {
         this._loadDrawing(o)
         this._idShapeBase = o.shapeBase
         this.ver = o.ver
+        if (this.onload != null) {
+            this.onload()
+        }
     }
     _loadRemote(displayID) {
         this.displayID = displayID
@@ -679,30 +719,36 @@ class QPaintDoc {
             let o = JSON.parse(http.responseText)
             doc.localID = _makeLocalDrawingID()
             doc.syncer.noflush(function() {
-                doc._loadDrawing(o, true)
+                doc._loadRemoteDrawing(o)
             })
-            localStorage_setItem(localIDKey, localID)
+            localStorage_setItem(localIDKey, doc.localID)
             doc.syncer.dirty = false
+            if (doc.onload != null) {
+                doc.onload()
+            }
         })
     }
     _newDoc() {
-        this.displayID = "t" + this.localID
-        window.location.hash = "#" + this.displayID
         let doc = this
         callAsync("POST", "/api/drawings", [], null, function() {
             let o = JSON.parse(http.responseText)
             doc.displayID = o.id
             let localIDKey = "local:" + doc.displayID
             localStorage_setItem(localIDKey, doc.localID)
-            window.location.hash = "#" + doc.displayID
+            window_setHash("#" + doc.displayID)
         })
     }
     _loadBlank() {
         this.localID = _makeLocalDrawingID()
+        this.displayID = "t" + this.localID
+        window_setHash("#" + this.displayID)
         this._newDoc()
     }
-    _loadTempDoc(localID) {
+    _loadTempDoc(displayID) {
+        let localID = displayID.substring(1)
         this._load(localID)
+        this.localID = localID
+        this.displayID = displayID
         this._newDoc()
     }
 
@@ -726,7 +772,7 @@ class QPaintDoc {
         for (let i in shapes) {
             let shape = shapes[i]
             if (shape.ver > baseVer) {
-                changes.push(JSON.stringify(shape))
+                changes.push(shape)
             }
             shapeIDs.push(shape.id)
         }
@@ -745,19 +791,19 @@ class QPaintDoc {
             return
         }
         let hash = window.location.hash
+        console.log("load document", hash)
         if (hash == "") {
             this._loadBlank()
             return
         }
-        let displayID = hash.substring(1) // #t[localID]
-        if (_isTempDoc(displayID)) {
-            this._loadTempDoc(displayID.substring(1))
+        let displayID = hash.substring(1)
+        if (_isTempDoc(displayID)) { // #t[localID]
+            this._loadTempDoc(displayID)
         } else {
             this._loadRemote(displayID)
         }
     }
     reload() {
-        this.syncer.stop()
         this._reset()
         this.init()
     }
@@ -765,7 +811,7 @@ class QPaintDoc {
     addShape(shape) {
         if (shape != null) {
             this._shapes.push(this._initShape(shape))
-            shapeChanged(this, shape)
+            shapeChanged(this, shape, true)
             documentChanged(this)
         }
     }
