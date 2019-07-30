@@ -2,6 +2,7 @@ package paintdom
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,12 +25,18 @@ func NewService(doc *Document) (p *Service) {
 		"POST/drawings":              p.PostDrawings,
 		"GET/drawings/*":             p.GetDrawing,
 		"DELETE/drawings/*":          p.DeleteDrawing,
+		"POST/drawings/*/sync":       p.PostDrawingSync,
 		"POST/drawings/*/shapes":     p.PostShapes,
 		"GET/drawings/*/shapes/*":    p.GetShape,
 		"POST/drawings/*/shapes/*":   p.PostShape,
 		"DELETE/drawings/*/shapes/*": p.DeleteShape,
 	}
 	return
+}
+
+func (p *Service) PostDrawingSync(w http.ResponseWriter, req *http.Request, args []string) {
+	log.Println("PostDrawingSync:", args[0])
+	ReplyCode(w, 200)
 }
 
 func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []string) {

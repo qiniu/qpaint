@@ -146,6 +146,54 @@ function localStorage_setItem(key, val) {
 
 var http = new XMLHttpRequest()
 
+class QSynchronizer {
+    constructor() {
+        this.intervalHandler = null
+        this.dirty = false
+    }
+    stop() {
+        if (this.intervalHandler != null) {
+            clearInterval(this.intervalHandler)
+            this.intervalHandler = null
+        }
+    }
+
+    fireChanged(doc) {
+        this.dirty = true
+        if (this.intervalHandler != null) {
+            return
+        }
+        let syncUrl = "/api/drawings/" + doc.displayID + "/sync"
+        let baseVerKey = "ver:" + doc.localID
+        let syncer = this
+        let syncFunc = function() {
+            if (!syncer.dirty) {
+                syncer.stop()
+                return
+            }
+            syncer.dirty = false
+            let baseVer = localStorage_getIntItem(baseVerKey, 0)
+            let o = doc.prepareSync(baseVer)
+            http.open("POST", syncUrl)
+            http.setRequestHeader("Content-Type", "application/json")
+            http.onreadystatechange = function() {
+                if (http.readyState != 4) {
+                    return
+                }
+                if (http.status == 200) {
+                    localStorage_setItem(baseVerKey, o.ver.toString())
+                    syncFunc()
+                } else {
+                    console.log("QSynchronizer.sync status:", http.status, "-", http.statusText)
+                    syncer.dirty = true
+                }
+            }
+            http.send(o)
+        }
+        syncer.intervalHandler = setInterval(syncFunc, 500)
+    }
+}
+
 // ----------------------------------------------------------
 
 function loadDrawing(localID) {
@@ -155,8 +203,9 @@ function loadDrawing(localID) {
 
 function documentChanged(doc) {
     if (doc.localID != "") {
-        let val = doc._stringify()
+        let val = JSON.stringify(doc)
         localStorage_setItem("dg:"+doc.localID, val)
+        doc.syncer.fireChanged(doc)
     }
 }
 
@@ -170,10 +219,12 @@ function loadShape(parent, id) {
 }
 
 function shapeChanged(parent, shape) {
+    console.log("shapeChanged:", shape)
     if (shape.id != "") {
         shape.ver = parent.ver
         let val = JSON.stringify(shape)
         localStorage_setItem(parent.localID+":"+shape.id, val)
+        parent.syncer.fireChanged(parent)
     }
 }
 
@@ -538,6 +589,16 @@ class QPaintDoc {
         this.localID = ""
         this.displayID = ""
         this.ver = 1
+        this.syncer = new QSynchronizer()
+    }
+    _initShape(shape) {
+        if (shape.id != "") {
+            alert("Can't init shape twice! shape.id = " + shape.id)
+            return shape
+        }
+        this._idShapeBase++
+        shape.id = this._idShapeBase.toString()
+        return shape
     }
     _load(localID) {
         this.localID = localID
@@ -559,27 +620,38 @@ class QPaintDoc {
         this._idShapeBase = o.shapeBase
         this.ver = o.ver
     }
-    _stringify() {
+
+    toJSON() {
         let shapeIDs = []
         let shapes = this._shapes
         for (let i in shapes) {
             shapeIDs.push(shapes[i].id)
         }
-        return JSON.stringify({
+        return {
             id: this.localID,
             shapeBase: this._idShapeBase,
             shapes: shapeIDs,
             ver: this.ver
-        })
-    }
-    _initShape(shape) {
-        if (shape.id != "") {
-            alert("Can't init shape twice! shape.id = " + shape.id)
-            return shape
         }
-        this._idShapeBase++
-        shape.id = this._idShapeBase.toString()
-        return shape
+    }
+    prepareSync(baseVer) {
+        let shapeIDs = []
+        let changes = []
+        let shapes = this._shapes
+        for (let i in shapes) {
+            let shape = shapes[i]
+            if (shape.ver > baseVer) {
+                changes.push(JSON.stringify(shape))
+            }
+            shapeIDs.push(shape.id)
+        }
+        let result = {
+            shapes: shapeIDs,
+            changes: changes,
+            ver: this.ver
+        }
+        this.ver++
+        return result
     }
 
     init() {
@@ -599,6 +671,7 @@ class QPaintDoc {
         window.location.hash = "#" + this.displayID
     }
     reload() {
+        this.syncer.stop()
         this._reset()
         this.init()
     }
