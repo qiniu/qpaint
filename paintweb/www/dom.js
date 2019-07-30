@@ -67,14 +67,43 @@ function deleteItem(array, item) {
 
 // ----------------------------------------------------------
 
-function _getNextID(key) {
-    let dgBase = localStorage.getItem(key)
-    if (dgBase == null) {
-        dgBase = 10000
-    } else {
-        dgBase = parseInt(dgBase)
+class QSerializer {
+    constructor() {
+        this.creators = {}
     }
-    dgBase++
+    register(name, creator) {
+        this.creators[name] = creator
+    }
+    create(json) {
+        for (let key in json) {
+            if (key != "id") {
+                let creator = this.creators[key]
+                if (creator) {
+                    return creator(json)
+                }
+                break
+            }
+        }
+        alert("unsupport shape: " + JSON.stringify(json))
+        return null
+    }
+}
+
+var qshapes = new QSerializer()
+
+// ----------------------------------------------------------
+
+function localStorage_getIntItem(key, defaultVal) {
+    let val = localStorage.getItem(key)
+    if (val == null) {
+        return defaultVal
+    } else {
+        return parseInt(val)
+    }
+}
+
+function _getNextID(key) {
+    let dgBase = localStorage_getIntItem(key, 10000) + 1
     return dgBase.toString()
 }
 
@@ -113,6 +142,12 @@ function localStorage_setItem(key, val) {
     }
 }
 
+// ----------------------------------------------------------
+
+var http = new XMLHttpRequest()
+
+// ----------------------------------------------------------
+
 function loadDrawing(localID) {
     let val = localStorage.getItem("dg:"+localID)
     return JSON.parse(val)
@@ -131,29 +166,12 @@ function loadShape(parent, id) {
     if (o == null) {
         return null
     }
-    let sty = o.style
-    let style = new QShapeStyle(sty.lineWidth, sty.lineColor, sty.fillColor)
-    switch (o.type) {
-    case "QLine":
-        return new QLine(o.pt1, o.pt2, style)
-    case "QRect":
-        return new QRect(o, style)
-    case "QEllipse":
-        return new QEllipse(o.x, o.y, o.radiusX, o.radiusY, style)
-    case "QPath":
-        return new QPath(o.points, o.close, style)
-    default:
-        alert("loadShape: unknown shape type - " + o.type)
-        return null
-    }
+    return qshapes.create(o)
 }
 
-function shapeChanged(shape) {
+function shapeChanged(parent, shape) {
     if (shape.id != "") {
-        let parent = shape.type
-        shape.type = shape.constructor.name
         let val = JSON.stringify(shape)
-        shape.type = parent
         localStorage_setItem(parent.localID+":"+shape.id, val)
     }
 }
@@ -174,12 +192,36 @@ class QShapeStyle {
     }
 }
 
+function newShapeStyle(sty) {
+    return new QShapeStyle(sty.lineWidth, sty.lineColor, sty.fillColor)
+}
+
+// ----------------------------------------------------------
+
 class QLine {
     constructor(point1, point2, style) {
-        this.pt1 = point1
-        this.pt2 = point2
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.pt1 = point1
+            this.pt2 = point2
+            this.style = style
+            this.id = ""
+        } else {
+            let o = point1.line
+            this.id = point1.id
+            this.pt1 = o.pt1
+            this.pt2 = o.pt2
+            this.style = newShapeStyle(o.style)
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            line: {
+                pt1: this.pt1,
+                pt2: this.pt2,
+                style: this.style
+            }
+        }
     }
 
     bound() {
@@ -191,16 +233,16 @@ class QLine {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         this.pt1.x += dx
         this.pt1.y += dy
         this.pt2.x += dx
         this.pt2.y += dy
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -214,14 +256,42 @@ class QLine {
     }
 }
 
+qshapes.register("line", function(json) {
+    return new QLine(json)
+})
+
+// ----------------------------------------------------------
+
 class QRect {
     constructor(r, style) {
-        this.x = r.x
-        this.y = r.y
-        this.width = r.width
-        this.height = r.height
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.x = r.x
+            this.y = r.y
+            this.width = r.width
+            this.height = r.height
+            this.style = style
+            this.id = ""
+        } else {
+            let o = r.rect
+            this.id = r.id
+            this.x = o.x
+            this.y = o.y
+            this.width = o.width
+            this.height = o.height
+            this.style = newShapeStyle(o.style)
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            rect: {
+                x: this.x,
+                y: this.y,
+                width: this.width,
+                height: this.height,
+                style: this.style
+            }
+        }
     }
 
     bound() {
@@ -233,14 +303,14 @@ class QRect {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         this.x += dx
         this.y += dy
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -254,14 +324,42 @@ class QRect {
     }
 }
 
+qshapes.register("rect", function(json) {
+    return new QRect(json)
+})
+
+// ----------------------------------------------------------
+
 class QEllipse {
     constructor(x, y, radiusX, radiusY, style) {
-        this.x = x
-        this.y = y
-        this.radiusX = radiusX
-        this.radiusY = radiusY
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.x = x
+            this.y = y
+            this.radiusX = radiusX
+            this.radiusY = radiusY
+            this.style = style
+            this.id = ""
+        } else {
+            let o = r.x
+            this.id = x.id
+            this.x = o.x
+            this.y = o.y
+            this.radiusX = o.radiusX
+            this.radiusY = o.radiusY
+            this.style = newShapeStyle(o.style)
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            ellipse: {
+                x: this.x,
+                y: this.y,
+                radiusX: this.radiusX,
+                radiusY: this.radiusY,
+                style: this.style
+            }
+        }
     }
 
     bound() {
@@ -282,14 +380,14 @@ class QEllipse {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         this.x += dx
         this.y += dy
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -303,12 +401,36 @@ class QEllipse {
     }
 }
 
+qshapes.register("ellipse", function(json) {
+    return new QEllipse(json)
+})
+
+// ----------------------------------------------------------
+
 class QPath {
     constructor(points, close, style) {
-        this.points = points
-        this.close = close
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.points = points
+            this.close = close
+            this.style = style
+            this.id = ""
+        } else {
+            let o = points.path
+            this.id = points.id
+            this.points = o.points
+            this.close = o.close
+            this.style = newShapeStyle(o.style)
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            path: {
+                points: this.points,
+                close: this.close,
+                style: this.style
+            }
+        }
     }
 
     bound() {
@@ -352,17 +474,17 @@ class QPath {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         let points = this.points
         for (let i in points) {
             points[i].x += dx
             points[i].y += dy
         }
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -386,6 +508,10 @@ class QPath {
     }
 }
 
+qshapes.register("path", function(json) {
+    return new QPath(json)
+})
+
 // ----------------------------------------------------------
 
 class QPaintDoc {
@@ -398,6 +524,7 @@ class QPaintDoc {
         this._idShapeBase = 0
         this.localID = ""
         this.displayID = ""
+        this._cl = null
     }
     _load(localID) {
         this.localID = localID
@@ -413,7 +540,6 @@ class QPaintDoc {
                 continue
             }
             shape.id = shapeID
-            shape.type = this
             shapes.push(shape)
         }
         this._shapes = shapes
@@ -438,7 +564,6 @@ class QPaintDoc {
         }
         this._idShapeBase++
         shape.id = this._idShapeBase.toString()
-        shape.type = this
         return shape
     }
 
@@ -452,11 +577,13 @@ class QPaintDoc {
             this.displayID = hash.substring(1)
             this.localID = this.displayID.substring(1)
             this._load(this.localID)
+            this._cl = new ChangeLog(this.localID)
             return
         }
         this.localID = _makeLocalDrawingID()
         this.displayID = "t" + this.localID
         window.location.hash = "#" + this.displayID
+        this._cl = new ChangeLog(this.localID)
     }
     reload() {
         this._reset()
@@ -466,7 +593,7 @@ class QPaintDoc {
     addShape(shape) {
         if (shape != null) {
             this._shapes.push(this._initShape(shape))
-            shapeChanged(shape)
+            shapeChanged(this, shape)
             documentChanged(this)
         }
     }

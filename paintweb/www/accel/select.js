@@ -50,7 +50,7 @@ class QShapeSelector {
             let selection = qview.selection
             if (selection != null) {
                 let pt = qview.getMousePos(event)
-                selection.move(pt.x - this.pt.x, pt.y - this.pt.y)
+                selection.move(qview.doc, pt.x - this.pt.x, pt.y - this.pt.y)
             }
             this.reset()
         }

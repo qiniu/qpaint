@@ -64,7 +64,7 @@ function installControllersV2() {
 
 function selection_setProp(key, val) {
     if (qview.selection != null) {
-        qview.selection.setProp(key, val)
+        qview.selection.setProp(qview.doc, key, val)
         invalidate(null)
     }
 }
