@@ -2,6 +2,7 @@ package paintdom
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -33,6 +34,7 @@ func NewService(doc *Document) (p *Service) {
 }
 
 func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []string) {
+	log.Println(req.Method, req.URL)
 	drawing, err := p.doc.Add()
 	if err != nil {
 		ReplyError(w, err)
@@ -42,6 +44,7 @@ func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []
 }
 
 func (p *Service) GetDrawing(w http.ResponseWriter, req *http.Request, args []string) {
+	log.Println(req.Method, req.URL)
 	id := args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
@@ -151,6 +154,8 @@ func (p *Service) DeleteShape(w http.ResponseWriter, req *http.Request, args []s
 	ReplyCode(w, 200)
 }
 
+// ---------------------------------------------------
+
 type serviceShape struct {
 	ID      string       `json:"id"`
 	Path    *pathData    `json:"path"`
@@ -189,12 +194,14 @@ func Reply(w http.ResponseWriter, code int, data interface{}) {
 	header.Set("Content-Length", strconv.Itoa(len(b)))
 	w.WriteHeader(code)
 	w.Write(b)
+	log.Println("REPLY", code, string(b))
 }
 
 func ReplyCode(w http.ResponseWriter, code int) {
 	header := w.Header()
 	header.Set("Content-Length", "0")
 	w.WriteHeader(code)
+	log.Println("REPLY", code)
 }
 
 func ReplyError(w http.ResponseWriter, err error) {
