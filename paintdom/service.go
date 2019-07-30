@@ -1,8 +1,11 @@
 package paintdom
 
 import (
+	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
+	"io"
 	"strconv"
 	"strings"
 	"syscall"
@@ -24,6 +27,7 @@ func NewService(doc *Document) (p *Service) {
 		"POST/drawings":              p.PostDrawings,
 		"GET/drawings/*":             p.GetDrawing,
 		"DELETE/drawings/*":          p.DeleteDrawing,
+		"POST/drawings/*/sync":       p.PostDrawingSync,
 		"POST/drawings/*/shapes":     p.PostShapes,
 		"GET/drawings/*/shapes/*":    p.GetShape,
 		"POST/drawings/*/shapes/*":   p.PostShape,
@@ -32,16 +36,44 @@ func NewService(doc *Document) (p *Service) {
 	return
 }
 
+func (p *Service) PostDrawingSync(w http.ResponseWriter, req *http.Request, args []string) {
+	b := bytes.NewBuffer(nil)
+	io.Copy(b, req.Body)
+	log.Println(req.Method, req.URL, b.String())
+
+	var ds serviceDrawingSync
+	err := json.NewDecoder(b).Decode(&ds)
+	if err != nil {
+		ReplyError(w, err)
+		return
+	}
+
+	changes := make([]Shape, len(ds.Changes))
+	for i, item := range ds.Changes {
+		changes[i] = item.Get()
+	}
+
+	id := args[0]
+	err = p.doc.Sync(id, ds.Shapes, changes)
+	if err != nil {
+		ReplyError(w, err)
+		return
+	}
+	ReplyCode(w, 200)
+}
+
 func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []string) {
+	log.Println(req.Method, req.URL)
 	drawing, err := p.doc.Add()
 	if err != nil {
 		ReplyError(w, err)
 		return
 	}
-	Reply(w, 200, M{"id:": drawing.ID})
+	Reply(w, 200, M{"id": drawing.ID})
 }
 
 func (p *Service) GetDrawing(w http.ResponseWriter, req *http.Request, args []string) {
+	log.Println(req.Method, req.URL)
 	id := args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
@@ -151,6 +183,8 @@ func (p *Service) DeleteShape(w http.ResponseWriter, req *http.Request, args []s
 	ReplyCode(w, 200)
 }
 
+// ---------------------------------------------------
+
 type serviceShape struct {
 	ID      string       `json:"id"`
 	Path    *pathData    `json:"path"`
@@ -180,6 +214,11 @@ type serviceShapeOrZorder struct {
 	Zorder       string `json:"zorder"`
 }
 
+type serviceDrawingSync struct {
+	Changes []serviceShape `json:"changes"`
+	Shapes  []ShapeID      `json:"shapes"`
+}
+
 // ---------------------------------------------------
 
 func Reply(w http.ResponseWriter, code int, data interface{}) {
@@ -189,12 +228,14 @@ func Reply(w http.ResponseWriter, code int, data interface{}) {
 	header.Set("Content-Length", strconv.Itoa(len(b)))
 	w.WriteHeader(code)
 	w.Write(b)
+	log.Println("REPLY", code, string(b))
 }
 
 func ReplyCode(w http.ResponseWriter, code int) {
 	header := w.Header()
 	header.Set("Content-Length", "0")
 	w.WriteHeader(code)
+	log.Println("REPLY", code)
 }
 
 func ReplyError(w http.ResponseWriter, err error) {

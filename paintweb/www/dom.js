@@ -67,14 +67,66 @@ function deleteItem(array, item) {
 
 // ----------------------------------------------------------
 
-function _getNextID(key) {
-    let dgBase = localStorage.getItem(key)
-    if (dgBase == null) {
-        dgBase = 10000
-    } else {
-        dgBase = parseInt(dgBase)
+var _eatNextHashChangeEvent = false
+
+function window_onhashchange(handle) {
+    window.onhashchange = function(event) {
+        if (_eatNextHashChangeEvent) {
+            _eatNextHashChangeEvent = false
+            return
+        }
+        handle(event)
     }
-    dgBase++
+}
+
+function window_setHash(hash) {
+    _eatNextHashChangeEvent = true
+    window.location.hash = hash
+}
+
+// ----------------------------------------------------------
+
+class QSerializer {
+    constructor() {
+        this.creators = {}
+    }
+    register(name, creator) {
+        this.creators[name] = creator
+    }
+    create(json) {
+        for (let key in json) {
+            if (key != "id") {
+                let creator = this.creators[key]
+                if (creator) {
+                    return creator(json)
+                }
+                break
+            }
+        }
+        alert("unsupport shape: " + JSON.stringify(json))
+        return null
+    }
+}
+
+var qshapes = new QSerializer()
+
+// ----------------------------------------------------------
+
+function localStorage_getIntItem(key, defaultVal) {
+    let val = localStorage.getItem(key)
+    if (val == null) {
+        return defaultVal
+    } else {
+        return parseInt(val)
+    }
+}
+
+function _isTempDoc(displayID) {
+    return displayID.charAt(0) == 't'
+}
+
+function _getNextID(key) {
+    let dgBase = localStorage_getIntItem(key, 10000) + 1
     return dgBase.toString()
 }
 
@@ -84,17 +136,24 @@ function _makeLocalDrawingID() {
     return val
 }
 
+function removeCache(clearID) {
+    let key = "dg:" + clearID
+    let doc = localStorage.getItem(key)
+    if (doc != null) {
+        let o = JSON.parse(doc)
+        for (let i in o.shapes) {
+            localStorage.removeItem(o.id + ":" + o.shapes[i])
+        }
+        localStorage.removeItem(key)
+        return true
+    }
+    return false
+}
+
 function removeSomeCache() {
     let clearID = _getNextID("dgClear")
     for (i = 0; i < 32; i++) {
-        let key = "dg:" + clearID
-        let doc = localStorage.getItem(key)
-        if (doc != null) {
-            let o = JSON.parse(doc)
-            for (let i in o.shapes) {
-                localStorage.removeItem(o.id + ":" + o.shapes[i])
-            }
-            localStorage.removeItem(key)
+        if (removeCache(clearID)) {
             localStorage.setItem("dgClear", clearID)
             return
         }
@@ -113,15 +172,111 @@ function localStorage_setItem(key, val) {
     }
 }
 
+// ----------------------------------------------------------
+
+var http = new XMLHttpRequest()
+
+function callAsync(method, url, headers, body, onOK) {
+    let timeout = 1000
+    let doFunc = function() {
+        http.open(method, url)
+        for (let i in headers) {
+            let header = headers[i]
+            http.setRequestHeader(header.key, header.value)
+        }
+        http.onreadystatechange = function() {
+            if (http.readyState != 4) {
+                return
+            }
+            if (http.status == 200) {
+                onOK()
+            } else {
+                console.log(method, url, ", status:", http.status, "-", http.statusText)
+                setTimeout(doFunc, timeout)
+                timeout *= 2
+            }
+        }
+        http.send(body)
+    }
+    doFunc()
+}
+
+class QSynchronizer {
+    constructor() {
+        this.started = false
+        this.dirty = false
+    }
+    noflush(doSth) {
+        let old = this.started
+        this.started = true
+        doSth()
+        this.started = old
+    }
+
+    fireLoaded(doc) {
+        let baseVerKey = "ver:" + doc.localID
+        localStorage_setItem(baseVerKey, doc.ver.toString())
+        this.dirty = false
+        doc.ver++
+    }
+    fireChanged(doc) {
+        this.dirty = true
+        if (this.started) {
+            return
+        }
+        if (_isTempDoc(doc.displayID)) {
+            return
+        }
+        let syncUrl = "/api/drawings/" + doc.displayID + "/sync"
+        let baseVerKey = "ver:" + doc.localID
+        let timeout = 1000
+        let syncer = this
+        let syncFunc = function() {
+            if (!syncer.dirty) {
+                syncer.started = false
+                return
+            }
+            syncer.dirty = false
+            let baseVer = localStorage_getIntItem(baseVerKey, 0)
+            let o = doc.prepareSync(baseVer)
+            http.open("POST", syncUrl)
+            http.setRequestHeader("Content-Type", "application/json")
+            http.onreadystatechange = function() {
+                if (http.readyState != 4) {
+                    return
+                }
+                if (http.status == 200) {
+                    localStorage_setItem(baseVerKey, o.ver.toString())
+                    syncFunc()
+                } else {
+                    console.log("QSynchronizer.sync status:", http.status, "-", http.statusText, "body:", o)
+                    syncer.dirty = true
+                    setTimeout(syncFunc, timeout)
+                    timeout *= 2
+                }
+            }
+            http.send(JSON.stringify(o))
+        }
+        syncer.started = true
+        syncFunc()
+    }
+}
+
+// ----------------------------------------------------------
+
 function loadDrawing(localID) {
     let val = localStorage.getItem("dg:"+localID)
     return JSON.parse(val)
 }
 
-function documentChanged(doc) {
+function documentChanged(doc, noSync) {
     if (doc.localID != "") {
-        let val = doc._stringify()
+        let val = JSON.stringify(doc)
         localStorage_setItem("dg:"+doc.localID, val)
+        noSync = noSync || false
+        if (!noSync) {
+            doc.syncer.fireChanged(doc)
+        }
     }
 }
 
@@ -131,30 +286,18 @@ function loadShape(parent, id) {
     if (o == null) {
         return null
     }
-    let sty = o.style
-    let style = new QShapeStyle(sty.lineWidth, sty.lineColor, sty.fillColor)
-    switch (o.type) {
-    case "QLine":
-        return new QLine(o.pt1, o.pt2, style)
-    case "QRect":
-        return new QRect(o, style)
-    case "QEllipse":
-        return new QEllipse(o.x, o.y, o.radiusX, o.radiusY, style)
-    case "QPath":
-        return new QPath(o.points, o.close, style)
-    default:
-        alert("loadShape: unknown shape type - " + o.type)
-        return null
-    }
+    return qshapes.create(o)
 }
 
-function shapeChanged(shape) {
+function shapeChanged(parent, shape, noSync) {
     if (shape.id != "") {
-        let parent = shape.type
-        shape.type = shape.constructor.name
+        shape.ver = parent.ver
         let val = JSON.stringify(shape)
-        shape.type = parent
         localStorage_setItem(parent.localID+":"+shape.id, val)
+        noSync = noSync || false
+        if (!noSync) {
+            parent.syncer.fireChanged(parent)
+        }
     }
 }
 
@@ -174,12 +317,39 @@ class QShapeStyle {
     }
 }
 
+function newShapeStyle(sty) {
+    return new QShapeStyle(sty.lineWidth, sty.lineColor, sty.fillColor)
+}
+
+// ----------------------------------------------------------
+
 class QLine {
     constructor(point1, point2, style) {
-        this.pt1 = point1
-        this.pt2 = point2
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.pt1 = point1
+            this.pt2 = point2
+            this.style = style
+            this.ver = 0
+            this.id = ""
+        } else {
+            let o = point1.line
+            this.id = point1.id
+            this.pt1 = o.pt1
+            this.pt2 = o.pt2
+            this.style = newShapeStyle(o.style)
+            this.ver = o.ver
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            line: {
+                pt1: this.pt1,
+                pt2: this.pt2,
+                style: this.style,
+                ver: this.ver
+            }
+        }
     }
 
     bound() {
@@ -191,16 +361,16 @@ class QLine {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         this.pt1.x += dx
         this.pt1.y += dy
         this.pt2.x += dx
         this.pt2.y += dy
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -214,14 +384,45 @@ class QLine {
     }
 }
 
+qshapes.register("line", function(json) {
+    return new QLine(json)
+})
+
+// ----------------------------------------------------------
+
 class QRect {
     constructor(r, style) {
-        this.x = r.x
-        this.y = r.y
-        this.width = r.width
-        this.height = r.height
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.x = r.x
+            this.y = r.y
+            this.width = r.width
+            this.height = r.height
+            this.style = style
+            this.ver = 0
+            this.id = ""
+        } else {
+            let o = r.rect
+            this.id = r.id
+            this.x = o.x
+            this.y = o.y
+            this.width = o.width
+            this.height = o.height
+            this.style = newShapeStyle(o.style)
+            this.ver = o.ver
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            rect: {
+                x: this.x,
+                y: this.y,
+                width: this.width,
+                height: this.height,
+                style: this.style,
+                ver: this.ver
+            }
+        }
     }
 
     bound() {
@@ -233,14 +434,14 @@ class QRect {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         this.x += dx
         this.y += dy
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -254,14 +455,45 @@ class QRect {
     }
 }
 
+qshapes.register("rect", function(json) {
+    return new QRect(json)
+})
+
+// ----------------------------------------------------------
+
 class QEllipse {
     constructor(x, y, radiusX, radiusY, style) {
-        this.x = x
-        this.y = y
-        this.radiusX = radiusX
-        this.radiusY = radiusY
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.x = x
+            this.y = y
+            this.radiusX = radiusX
+            this.radiusY = radiusY
+            this.style = style
+            this.ver = 0
+            this.id = ""
+        } else {
+            let o = x.ellipse
+            this.id = x.id
+            this.x = o.x
+            this.y = o.y
+            this.radiusX = o.radiusX
+            this.radiusY = o.radiusY
+            this.style = newShapeStyle(o.style)
+            this.ver = o.ver
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            ellipse: {
+                x: this.x,
+                y: this.y,
+                radiusX: this.radiusX,
+                radiusY: this.radiusY,
+                style: this.style,
+                ver: this.ver
+            }
+        }
     }
 
     bound() {
@@ -282,14 +514,14 @@ class QEllipse {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         this.x += dx
         this.y += dy
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -303,12 +535,39 @@ class QEllipse {
     }
 }
 
+qshapes.register("ellipse", function(json) {
+    return new QEllipse(json)
+})
+
+// ----------------------------------------------------------
+
 class QPath {
     constructor(points, close, style) {
-        this.points = points
-        this.close = close
-        this.style = style
-        this.id = ""
+        if (style) {
+            this.points = points
+            this.close = close
+            this.style = style
+            this.ver = 0
+            this.id = ""
+        } else {
+            let o = points.path
+            this.id = points.id
+            this.points = o.points
+            this.close = o.close
+            this.style = newShapeStyle(o.style)
+            this.ver = o.ver
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            path: {
+                points: this.points,
+                close: this.close,
+                style: this.style,
+                ver: this.ver
+            }
+        }
     }
 
     bound() {
@@ -352,17 +611,17 @@ class QPath {
         }
         return {hitCode: 0, hitShape: null}
     }
-    move(dx, dy) {
+    move(parent, dx, dy) {
         let points = this.points
         for (let i in points) {
             points[i].x += dx
             points[i].y += dy
         }
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
-    setProp(key, val) {
+    setProp(parent, key, val) {
         this.style.setProp(key, val)
-        shapeChanged(this)
+        shapeChanged(parent, this)
     }
 
     onpaint(ctx) {
@@ -386,6 +645,10 @@ class QPath {
     }
 }
 
+qshapes.register("path", function(json) {
+    return new QPath(json)
+})
+
 // ----------------------------------------------------------
 
 class QPaintDoc {
@@ -398,38 +661,9 @@ class QPaintDoc {
         this._idShapeBase = 0
         this.localID = ""
         this.displayID = ""
-    }
-    _load(localID) {
-        this.localID = localID
-        let o = loadDrawing(localID)
-        if (o == null) {
-            return
-        }
-        let shapes = []
-        for (let i in o.shapes) {
-            let shapeID = o.shapes[i]
-            let shape = loadShape(this, shapeID)
-            if (shape == null) {
-                continue
-            }
-            shape.id = shapeID
-            shape.type = this
-            shapes.push(shape)
-        }
-        this._shapes = shapes
-        this._idShapeBase = o.shapeBase
-    }
-    _stringify() {
-        let shapeIDs = []
-        let shapes = this._shapes
-        for (let i in shapes) {
-            shapeIDs.push(shapes[i].id)
-        }
-        return JSON.stringify({
-            id: this.localID,
-            shapeBase: this._idShapeBase,
-            shapes: shapeIDs
-        })
+        this.ver = 1
+        this.syncer = new QSynchronizer()
+        this.onload = null
     }
     _initShape(shape) {
         if (shape.id != "") {
@@ -438,8 +672,131 @@ class QPaintDoc {
         }
         this._idShapeBase++
         shape.id = this._idShapeBase.toString()
-        shape.type = this
         return shape
+    }
+    _loadDrawing(o) {
+        let shapes = []
+        for (let i in o.shapes) {
+            let shapeID = o.shapes[i]
+            let shape = loadShape(this, shapeID)
+            if (shape == null) {
+                continue
+            }
+            shape.id = shapeID
+            shapes.push(shape)
+        }
+        this._shapes = shapes
+    }
+    _loadRemoteDrawing(o) {
+        let shapes = []
+        let idShapeBase = 0
+        for (let i in o.shapes) {
+            let shape = qshapes.create(o.shapes[i])
+            if (shape == null) {
+                continue
+            }
+            let id = parseInt(shape.id)
+            if (id > idShapeBase) {
+                idShapeBase = id
+            }
+            shapes.push(shape)
+            shapeChanged(this, shape, true)
+        }
+        this._shapes = shapes
+        this._idShapeBase = idShapeBase
+        documentChanged(this, true)
+    }
+    _load(localID) {
+        this.localID = localID
+        let o = loadDrawing(localID)
+        if (o == null) {
+            return
+        }
+        this._loadDrawing(o)
+        this._idShapeBase = o.shapeBase
+        this.ver = o.ver
+        if (this.onload != null) {
+            this.onload()
+        }
+    }
+    _loadRemote(displayID) {
+        this.displayID = displayID
+        let localIDKey = "local:" + displayID
+        let localID = localStorage.getItem(localIDKey)
+        if (localID != null) {
+            this._load(localID)
+        } else {
+            this.localID = _makeLocalDrawingID()
+        }
+        let doc = this
+        callAsync("GET", "/api/drawings/" + displayID, [], null, function() {
+            let o = JSON.parse(http.responseText)
+            removeCache(localID)
+            doc.syncer.noflush(function() {
+                doc._loadRemoteDrawing(o)
+            })
+            localStorage_setItem(localIDKey, doc.localID)
+            doc.syncer.fireLoaded(doc)
+            if (doc.onload != null) {
+                doc.onload()
+            }
+        })
+    }
+    _newDoc() {
+        let doc = this
+        callAsync("POST", "/api/drawings", [], null, function() {
+            let o = JSON.parse(http.responseText)
+            doc.displayID = o.id
+            let localIDKey = "local:" + doc.displayID
+            localStorage_setItem(localIDKey, doc.localID)
+            window_setHash("#" + doc.displayID)
+        })
+    }
+    _loadBlank() {
+        this.localID = _makeLocalDrawingID()
+        this.displayID = "t" + this.localID
+        window_setHash("#" + this.displayID)
+        this._newDoc()
+    }
+    _loadTempDoc(displayID) {
+        let localID = displayID.substring(1)
+        this._load(localID)
+        this.localID = localID
+        this.displayID = displayID
+        this._newDoc()
+    }
+
+    toJSON() {
+        let shapeIDs = []
+        let shapes = this._shapes
+        for (let i in shapes) {
+            shapeIDs.push(shapes[i].id)
+        }
+        return {
+            id: this.localID,
+            shapeBase: this._idShapeBase,
+            shapes: shapeIDs,
+            ver: this.ver
+        }
+    }
+    prepareSync(baseVer) {
+        let shapeIDs = []
+        let changes = []
+        let shapes = this._shapes
+        for (let i in shapes) {
+            let shape = shapes[i]
+            if (shape.ver > baseVer) {
+                changes.push(shape)
+            }
+            shapeIDs.push(shape.id)
+        }
+        let result = {
+            shapes: shapeIDs,
+            changes: changes,
+            ver: this.ver
+        }
+        this.ver++
+        return result
     }
 
     init() {
@@ -448,15 +805,17 @@ class QPaintDoc {
             return
         }
         let hash = window.location.hash
-        if (hash != "") { // #t[localID]
-            this.displayID = hash.substring(1)
-            this.localID = this.displayID.substring(1)
-            this._load(this.localID)
+        console.log("load document", hash)
+        if (hash == "") {
+            this._loadBlank()
             return
         }
-        this.localID = _makeLocalDrawingID()
-        this.displayID = "t" + this.localID
-        window.location.hash = "#" + this.displayID
+        let displayID = hash.substring(1)
+        if (_isTempDoc(displayID)) { // #t[localID]
+            this._loadTempDoc(displayID)
+        } else {
+            this._loadRemote(displayID)
+        }
     }
     reload() {
         this._reset()
@@ -466,7 +825,7 @@ class QPaintDoc {
     addShape(shape) {
         if (shape != null) {
             this._shapes.push(this._initShape(shape))
-            shapeChanged(shape)
+            shapeChanged(this, shape, true)
             documentChanged(this)
         }
     }
