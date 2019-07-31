@@ -214,7 +214,7 @@ class QSynchronizer {
     }
 
     fireLoaded(doc) {
-        let baseVerKey = "ver:" + doc.localID
+        let baseVerKey = "base:" + doc.displayID
         localStorage_setItem(baseVerKey, doc.ver.toString())
         this.dirty = false
         doc.ver++
@@ -228,7 +228,7 @@ class QSynchronizer {
             return
         }
         let syncUrl = "/api/drawings/" + doc.displayID + "/sync"
-        let baseVerKey = "ver:" + doc.localID
+        let baseVerKey = "base:" + doc.displayID
         let timeout = 1000
         let syncer = this
         let syncFunc = function() {
