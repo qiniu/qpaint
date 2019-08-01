@@ -9,7 +9,6 @@
 | 功能 | 请求包 | 返回包 |
 | ------------- | ---------- | ------------- |
 | 同步变更 | POST /drawings/`<DrawingID>`/sync<br>Content-Type: `application/json`<br><br>{<br>&nbsp;&nbsp;&nbsp;&nbsp;"shapes": [`<ShapeID1>`, `<ShapeID2>`, `<ShapeID3>`, ...],<br>&nbsp;&nbsp;&nbsp;&nbsp;"changes": [<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"id": `<ShapeID>`,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`<Shape>`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...<br>&nbsp;&nbsp;&nbsp;&nbsp;]<br>} | 200 OK |
-|
 
 ## QPaint DOM (第 29 讲)
 
