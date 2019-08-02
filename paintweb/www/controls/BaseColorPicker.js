@@ -3,14 +3,20 @@ class QBaseColorPicker {
     constructor(div) {
         let id = div.id
         let onchange = div.onchange
-        div.outerHTML = `<select id="` + id + `">
-<option value="black">black</option>
-<option value="red">red</option>
-<option value="blue">blue</option>
-<option value="green">green</option>
-<option value="yellow">yellow</option>
-<option value="gray">gray</option>
-</select>`
+        let palette = div.getAttribute("palette")
+        let colors = palette.split(",")
+        let options = []
+        for (let i in colors) {
+            let color = colors[i]
+            let n = color.length
+            if (color.charAt(n-1) == ")") {
+                let offset = color.indexOf("(")
+                options.push(`<option value="` + color.substring(0, offset) + `">` + color.substring(offset+1, n-1) + `</option>`)
+            } else {
+                options.push(`<option value="` + color + `">` + color + `</option>`)
+            }
+        }
+        div.outerHTML = `<select id="` + id + `">` + options.join("") + `</select>`
         let elem = document.getElementById(id)
         if (onchange) {
             elem.onchange = onchange
