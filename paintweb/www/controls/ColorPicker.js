@@ -3,21 +3,30 @@ function ColorPicker(div) {
     let onchange = div.onchange
     let palette = div.getAttribute("palette")
     let colors = palette.split(",")
-    div.outerHTML = `<input type="button" id="` + id + `" value="` + colors[0] + `">`
+    let value = colors[0]
+    div.outerHTML = `<input type="button" id="` + id + `" value="` + value + `">`
     let elem = $("#" + id)
     elem.spectrum({
         showInitial: true,
         showInput: true,
         showButtons: true,
-        preferredFormat: "hex6",
-        change: function(color) {
-            elem.val(color.toHexString())
-            if (onchange) {
-                onchange()
-            }
+        preferredFormat: "hex6"
+    })
+    if (onchange) {
+        elem.change(onchange)
+    }
+    Object.defineProperty(document.getElementById(id), "value", {
+        get() {
+            return value
         },
-        move: function(color) {
-            elem.val(color.toHexString())
+        set(x) {
+            if (this.busy) {
+                return
+            }
+            value = x
+            this.busy = true
+            elem.spectrum("set", value)
+            this.busy = false
         }
     })
 }
