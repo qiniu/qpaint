@@ -3,8 +3,8 @@ class QControls {
         this.data = {}
     }
 
-    register(kind, control) {
-        this.data[kind] = control
+    register(type, control) {
+        this.data[type] = control
     }
 
     init() {
@@ -12,9 +12,9 @@ class QControls {
         let n = divs.length
         for (let i = n-1; i >= 0; i--) {
             let div = divs[i]
-            let kind = div.getAttribute("type")
-            if (kind != null) {
-                let control = this.data[kind]
+            let type = div.getAttribute("type")
+            if (type != null) {
+                let control = this.data[type]
                 if (control) {
                     control(div)
                 }

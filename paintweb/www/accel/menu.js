@@ -104,9 +104,9 @@ function installPropSelectors() {
     <label for="lineWidth">LineWidth: </label>
     <div type="BaseLineWidthPicker" id="lineWidth" onchange="onIntPropChanged('lineWidth')"></div>&nbsp;
     <label for="lineColor">LineColor: </label>
-    <div type="BaseColorPicker" id="lineColor" onchange="onPropChanged('lineColor')" palette="black,red,blue,green,yellow,gray"></div>&nbsp;
+    <div type="ColorPicker" id="lineColor" onchange="onPropChanged('lineColor')" palette="black,red,blue,green,yellow,gray"></div>&nbsp;
     <label for="fillColor">FillColor: </label>
-    <div type="BaseColorPicker" id="fillColor" onchange="onPropChanged('fillColor')" palette="white,null(transparent),black,red,blue,green,yellow,gray"></div>
+    <div type="ColorPicker" id="fillColor" onchange="onPropChanged('fillColor')" palette="white,null(transparent),black,red,blue,green,yellow,gray"></div>
     </div>`)
 }
 
