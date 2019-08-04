@@ -1,7 +1,6 @@
 <!doctype html>
 <html  xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
 <head>
-    <!-- title -->
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
     <title>Html Color Picker</title>
@@ -9,45 +8,10 @@
     <link rel="stylesheet" href="styles.css" type="text/css" />
 </head>
 <body class="hold-transition skin-blue layout-top-nav">
-    <div class="content-wrapper">
-        <div class="container">
-            <section class="content">
-                <div class="box box-solid">
-                    <div class="box-body no-padding">
-                        <article class="entry-item no-border">
-                            <div class="row">
-                                <div class="col-md-6 color-picker-div">
-                                    <h2>Pick a Color</h2>
-                                    <input id="color-picker"></input>
-                                </div>
-                                <div class="col-md-6">
-                                    <h2>Enter color value</h2>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="entercolor" placeholder="Color Value">
-                                        <span class="input-group-btn">
-                                              <button type="button" onclick="clickColor('input')"  class="btn btn-info btn-flat">OK</button>
-                                            </span>
-                                    </div>
-                                    <h2>Or Use HTML5</h2>
-                                    <input type="color" class="form-control" id="html5colorpicker" onchange="clickColor('html5')" value="#ff0000">
-                                    <h2 class="text-center">Selected Color</h2>
-                                    <a id="selectedcolor_link" href="#">
-                                        <div id="selectedcolor" class="bt-large">
-                                            <br>
-                                            <span id="colorhexDIV"></span><br>
-                                            <span id="colorrgbDIV"></span><br>
-                                            <span id="colorhslDIV"></span><br>
-											<span>See Info <i class="flaticon-arrows-5"></i></span>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                        </article>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </div>
+<div class="form-group">
+    <input type="button" name="color" id="colorpick" value="red">
+    <input type="button" name="color" id="colorpick" value="000000">
+</div>
 <script type="text/javascript" src="/base/jquery.js"></script>
 <script type="text/javascript" src="main.js"></script>
 </body>

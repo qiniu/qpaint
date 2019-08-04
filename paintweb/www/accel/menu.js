@@ -102,11 +102,11 @@ function installPropSelectors() {
     qview.onSelectionChanged = onSelectionChanged
     document.getElementById("menu").insertAdjacentHTML("afterend", `<br><div id="properties">
     <label for="lineWidth">LineWidth: </label>
-    <div type="BaseLineWidthPicker" id="lineWidth" onchange="onIntPropChanged('lineWidth')"></div>&nbsp;
+    <div class="BaseLineWidthPicker" id="lineWidth" onchange="onIntPropChanged('lineWidth')"></div>&nbsp;
     <label for="lineColor">LineColor: </label>
-    <div type="ColorPicker" id="lineColor" onchange="onPropChanged('lineColor')" palette="black,red,blue,green,yellow,gray"></div>&nbsp;
+    <div class="BaseColorPicker" id="lineColor" onchange="onPropChanged('lineColor')" palette="black,red,blue,green,yellow,gray"></div>&nbsp;
     <label for="fillColor">FillColor: </label>
-    <div type="ColorPicker" id="fillColor" onchange="onPropChanged('fillColor')" palette="white,null(transparent),black,red,blue,green,yellow,gray"></div>
+    <div class="BaseColorPicker" id="fillColor" onchange="onPropChanged('fillColor')" palette="white,null(transparent),black,red,blue,green,yellow,gray"></div>
     </div>`)
 }
 

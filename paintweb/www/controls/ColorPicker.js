@@ -3,7 +3,7 @@ function ColorPicker(div) {
     let onchange = div.onchange
     let palette = div.getAttribute("palette")
     let colors = palette.split(",")
-    let style = `" style="background:` + colors[0] + `; borderColor:` + colors[0]
+    let style = `" style="border-color:` + colors[0] + `;background:` + colors[0]
     div.outerHTML = `
     <input type="button" id="` + id + `" value="` + colors[0] + style + `"></input>`
     let elem = document.getElementById(id)

@@ -12,7 +12,7 @@ class QControls {
         let n = divs.length
         for (let i = n-1; i >= 0; i--) {
             let div = divs[i]
-            let type = div.getAttribute("type")
+            let type = div.getAttribute("class")
             if (type != null) {
                 let control = this.data[type]
                 if (control) {
