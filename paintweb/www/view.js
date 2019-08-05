@@ -39,7 +39,6 @@ function fireViewAdded(view) {
 
 class QPaintView {
     constructor(drawingID) {
-        this.style = new QShapeStyle(1, "black", "white")
         this.controllers = {}
         this._currentKey = ""
         this._current = null

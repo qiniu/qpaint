@@ -39,6 +39,8 @@ function installControllers() {
 
 // ----------------------------------------------------------
 
+var defaultStyle = new QShapeStyle(1, "black", "white")
+
 function selection_setProp(key, val) {
     if (qview.selection != null) {
         qview.selection.setProp(qview.doc, key, val)
@@ -50,7 +52,7 @@ function onPropChanged(key) {
     let elem = document.getElementById(key)
     let val = elem.value
     elem.blur()
-    qview.style[key] = val
+    defaultStyle[key] = val
     selection_setProp(key, val)
 }
 
@@ -59,7 +61,7 @@ function onIntPropChanged(key) {
     elem.blur()
     let val = parseInt(elem.value)
     if (val > 0) {
-        qview.style[key] = val
+        defaultStyle[key] = val
         selection_setProp(key, val)
     }
 }
@@ -68,7 +70,7 @@ function onSelectionChanged(old) {
     let selection = qview.selection
     if (selection != null) {
         let style = selection.style
-        qview.style = style.clone()
+        defaultStyle = style.clone()
         document.getElementById("lineWidth").value = style.lineWidth
         document.getElementById("lineColor").value = style.lineColor
         document.getElementById("fillColor").value = style.fillColor

@@ -31,7 +31,7 @@ class QPathCreator {
         for (let i in this.points) {
             points.push(this.points[i])
         }
-        return new QPath(points, this.close, this.view.style.clone())
+        return new QPath(points, this.close, defaultStyle.clone())
     }
 
     onmousedown(event) {
@@ -74,7 +74,7 @@ class QPathCreator {
 
     onpaint(ctx) {
         if (this.started) {
-            let props = this.view.style
+            let props = defaultStyle
             ctx.lineWidth = props.lineWidth
             ctx.strokeStyle = props.lineColor
             ctx.beginPath()

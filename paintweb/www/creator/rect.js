@@ -30,7 +30,7 @@ class QRectCreator {
     buildShape() {
         let rect = this.rect
         let r = normalizeRect(rect)
-        let style = this.view.style.clone()
+        let style = defaultStyle.clone()
         switch (this.shapeType) {
         case "line":
             return new QLine(rect.pt1, rect.pt2, style)
