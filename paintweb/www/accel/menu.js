@@ -1,29 +1,21 @@
 // ----------------------------------------------------------
 
-function unselectElementById(id, invalidKey) {
-    if (id != invalidKey) {
+function unselectElementById(id) {
+    if (id != "ShapeSelector") {
         document.getElementById(id).removeAttribute("style")
     }
 }
 
-function selectElement(elem) {
-    elem.style.borderColor = "blue"
-}
-
-function selectElementById(id, invalidKey) {
-    if (id != invalidKey) {
-        selectElement(document.getElementById(id))
-    }
-}
-
-// ----------------------------------------------------------
+var _views = []
 
 function onClickCtrl(key) {
-    unselectElementById(qview.currentKey, "ShapeSelector")
+    unselectElementById(qview.currentKey)
     let elem = document.getElementById(key)
-    selectElement(elem)
+    elem.style.borderColor = "blue"
     elem.blur()
-    qview.invokeController(key)
+    for (i in _views) {
+        _views[i].invokeController(key)
+    }
 }
 
 function installControllers() {
@@ -38,15 +30,10 @@ function installControllers() {
     onViewAdded(function(view) {
         view.invokeController("ShapeSelector")
         view.onControllerReset = function() {
-            unselectElementById(view.currentKey, "ShapeSelector")
+            unselectElementById(view.currentKey)
             view.invokeController("ShapeSelector")
         }
-    })
-    onCurrentViewChanged(function(old) {
-        if (old) {
-            unselectElementById(old.currentKey, "ShapeSelector")
-        }
-        selectElementById(qview.currentKey, "ShapeSelector")
+        _views.push(view)
     })
 }
 
