@@ -1,48 +1,52 @@
 class QFreePathCreator {
-    constructor() {
+    constructor(view) {
         this.points = []
         this.fromPos = {x: 0, y: 0}
         this.started = false
+        this.view = view
         let ctrl = this
-        qview.onmousedown = function(event) { ctrl.onmousedown(event) }
-        qview.onmousemove = function(event) { ctrl.onmousemove(event) }
-        qview.onmouseup = function(event) { ctrl.onmouseup(event) }
-        qview.onkeydown = function(event) { ctrl.onkeydown(event) }
+        view.onmousedown = function(event) { ctrl.onmousedown(event) }
+        view.onmousemove = function(event) { ctrl.onmousemove(event) }
+        view.onmouseup = function(event) { ctrl.onmouseup(event) }
+        view.onkeydown = function(event) { ctrl.onkeydown(event) }
     }
     stop() {
-        qview.onmousedown = null
-        qview.onmousemove = null
-        qview.onmouseup = null
-        qview.onkeydown = null
+        let view = this.view
+        view.onmousedown = null
+        view.onmousemove = null
+        view.onmouseup = null
+        view.onkeydown = null
     }
 
     reset() {
         this.points = []
         this.started = false
-        invalidate(null)
-        qview.fireControllerReset()
+        let view = this.view
+        view.invalidateRect(null)
+        view.fireControllerReset()
     }
     buildShape() {
         let points = [{x: this.fromPos.x, y: this.fromPos.y}]
         for (let i in this.points) {
             points.push(this.points[i])
         }
-        return new QPath(points, this.close, qview.style.clone())
+        return new QPath(points, this.close, defaultStyle.clone())
     }
 
     onmousedown(event) {
-        this.fromPos = qview.getMousePos(event)
+        this.fromPos = this.view.getMousePos(event)
         this.started = true
     }
     onmousemove(event) {
         if (this.started) {
-            this.points.push(qview.getMousePos(event))
-            invalidate(null)
+            let view = this.view
+            this.points.push(view.getMousePos(event))
+            view.invalidateRect(null)
         }
     }
     onmouseup(event) {
         if (this.started) {
-            qview.doc.addShape(this.buildShape())
+            this.view.doc.addShape(this.buildShape())
             this.reset()
         }
     }
@@ -54,7 +58,7 @@ class QFreePathCreator {
 
     onpaint(ctx) {
         if (this.started) {
-            let props = qview.style
+            let props = defaultStyle
             ctx.lineWidth = props.lineWidth
             ctx.strokeStyle = props.lineColor
             ctx.beginPath()
@@ -67,6 +71,8 @@ class QFreePathCreator {
     }
 }
 
-qview.registerController("FreePathCreator", function() {
-    return new QFreePathCreator()
+onViewAdded(function(view) {
+    view.registerController("FreePathCreator", function() {
+        return new QFreePathCreator(view)
+    })
 })

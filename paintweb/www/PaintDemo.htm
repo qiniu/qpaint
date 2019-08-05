@@ -5,10 +5,12 @@
 </head>
 <body>
 <style>
-#drawing{border:1px solid lightgray}
+#drawing1{border:1px solid lightgray}
+#drawing2{border:1px solid lightgray}
 </style>
 <div id="menu"></div><br>
-<canvas id="drawing" width="1024" height="660">你的浏览器不支持Canvas！</canvas>
+<div id="drawing1" type="PaintView" width="512" height="360"></div>
+<div id="drawing2" type="PaintView" width="512" height="360"></div>
 <script src="/base/jquery.js"></script>
 <script src="/base/spectrum.js"></script>
 <script src="controls/base.js?v=7"></script>
@@ -24,7 +26,6 @@
 <script src="accel/menu.js?v=7"></script>
 <script src="PaintView.js?v=7"></script>
 <script>
-    initPaintView("drawing")
     qcontrols.init()
 </script>
 </body>
