@@ -1,5 +1,15 @@
 # QPaint (by Qiniu.com)
 
+## 辅助界面元素
+
+### 接口规格 (第 31 讲)
+
+| 类型 | 属性 | 方法 | 事件 |
+| ------------- | ---------- | ------ | ------------- |
+| BaseLineWidthPicker | id: string<br>value: number | blur() | onchange(event: Event) |
+| BaseColorPicker | id: string<br>value: Color<br>palette: string | blur() | onchange(event: Event) |
+| ColorPicker | id: string<br>palette: string<br>value: Color | blur() | onchange(event: Event) |
+
 ## QPaint DOM (第 30 讲)
 
 ### 网络协议
