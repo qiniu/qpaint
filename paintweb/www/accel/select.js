@@ -11,7 +11,6 @@ class QShapeSelector {
         view.onmousemove = function(event) { ctrl.onmousemove(event) }
         view.onmouseup = function(event) { ctrl.onmouseup(event) }
         view.onkeydown = function(event) { ctrl.onkeydown(event) }
-        view.onmouseenter = function(event) { ctrl.onmouseenter(event) }
     }
     stop() {
         let view = this.view
@@ -19,7 +18,6 @@ class QShapeSelector {
         view.onmousemove = null
         view.onmouseup = null
         view.onkeydown = null
-        view.onmouseenter = null
         view.drawing.style.cursor = "auto"
     }
 
@@ -65,9 +63,6 @@ class QShapeSelector {
             }
             this.reset()
         }
-    }
-    onmouseenter(event) {
-        setCurrentView(this.view)
     }
     onkeydown(event) {
         switch (event.keyCode) {

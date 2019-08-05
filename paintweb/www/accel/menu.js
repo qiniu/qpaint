@@ -1,63 +1,53 @@
 // ----------------------------------------------------------
 
-function installControllersV1() {
-    document.getElementById("menu").innerHTML = `
-    <input type="button" id="ShapeSelector" value="Select Shape" style="visibility:hidden">
-    <input type="button" id="PathCreator" value="Create Path" style="visibility:hidden">
-    <input type="button" id="FreePathCreator" value="Create FreePath" style="visibility:hidden">
-    <input type="button" id="LineCreator" value="Create Line" style="visibility:hidden">
-    <input type="button" id="RectCreator" value="Create Rect" style="visibility:hidden">
-    <input type="button" id="EllipseCreator" value="Create Ellipse" style="visibility:hidden">
-    <input type="button" id="CircleCreator" value="Create Circle" style="visibility:hidden">`
+function unselectElementById(id, invalidKey) {
+    if (id != invalidKey) {
+        document.getElementById(id).removeAttribute("style")
+    }
+}
 
-    for (let gkey in qview.controllers) {
-        let key = gkey
-        let elem = document.getElementById(key)
-        elem.style.visibility = "visible"
-        elem.onclick = function() {
-            if (qview.currentKey != "") {
-                document.getElementById(qview.currentKey).removeAttribute("style")
-            }
-            elem.style.borderColor = "blue"
-            elem.blur()
-            qview.invokeController(key)
-        }
+function selectElement(elem) {
+    elem.style.borderColor = "blue"
+}
+
+function selectElementById(id, invalidKey) {
+    if (id != invalidKey) {
+        selectElement(document.getElementById(id))
     }
 }
 
 // ----------------------------------------------------------
 
-function installControllersV2() {
-    document.getElementById("menu").innerHTML = `
-    <input type="button" id="PathCreator" value="Create Path" style="visibility:hidden">
-    <input type="button" id="FreePathCreator" value="Create FreePath" style="visibility:hidden">
-    <input type="button" id="LineCreator" value="Create Line" style="visibility:hidden">
-    <input type="button" id="RectCreator" value="Create Rect" style="visibility:hidden">
-    <input type="button" id="EllipseCreator" value="Create Ellipse" style="visibility:hidden">
-    <input type="button" id="CircleCreator" value="Create Circle" style="visibility:hidden">
-    <input type="button" id="ShapeSelector" value="Select Shape" style="visibility:hidden">`
+function onClickCtrl(key) {
+    unselectElementById(qview.currentKey, "ShapeSelector")
+    let elem = document.getElementById(key)
+    selectElement(elem)
+    elem.blur()
+    qview.invokeController(key)
+}
 
-    for (let gkey in qview.controllers) {
-        if (gkey == "ShapeSelector") {
-            continue
+function installControllers() {
+    document.getElementById("menu").innerHTML = `
+    <input type="button" id="PathCreator" value="Create Path" onclick="onClickCtrl('PathCreator')">
+    <input type="button" id="FreePathCreator" value="Create FreePath" onclick="onClickCtrl('FreePathCreator')">
+    <input type="button" id="LineCreator" value="Create Line" onclick="onClickCtrl('LineCreator')">
+    <input type="button" id="RectCreator" value="Create Rect" onclick="onClickCtrl('RectCreator')">
+    <input type="button" id="EllipseCreator" value="Create Ellipse" onclick="onClickCtrl('EllipseCreator')">
+    <input type="button" id="CircleCreator" value="Create Circle" onclick="onClickCtrl('CircleCreator')">`
+
+    onViewAdded(function(view) {
+        view.invokeController("ShapeSelector")
+        view.onControllerReset = function() {
+            unselectElementById(view.currentKey, "ShapeSelector")
+            view.invokeController("ShapeSelector")
         }
-        let key = gkey
-        let elem = document.getElementById(key)
-        elem.style.visibility = "visible"
-        elem.onclick = function() {
-            if (qview.currentKey != "ShapeSelector") {
-                document.getElementById(qview.currentKey).removeAttribute("style")
-            }
-            elem.style.borderColor = "blue"
-            elem.blur()
-            qview.invokeController(key)
+    })
+    onCurrentViewChanged(function(old) {
+        if (old) {
+            unselectElementById(old.currentKey, "ShapeSelector")
         }
-    }
-    qview.invokeController("ShapeSelector")
-    qview.onControllerReset = function() {
-        document.getElementById(qview.currentKey).removeAttribute("style")
-        qview.invokeController("ShapeSelector")
-    }
+        selectElementById(qview.currentKey, "ShapeSelector")
+    })
 }
 
 // ----------------------------------------------------------
@@ -99,7 +89,6 @@ function onSelectionChanged(old) {
 }
 
 function installPropSelectors() {
-    qview.onSelectionChanged = onSelectionChanged
     document.getElementById("menu").insertAdjacentHTML("afterend", `<br><div id="properties">
     <label for="lineWidth">LineWidth: </label>
     <div type="BaseLineWidthPicker" id="lineWidth" onchange="onIntPropChanged('lineWidth')"></div>&nbsp;
@@ -108,6 +97,13 @@ function installPropSelectors() {
     <label for="fillColor">FillColor: </label>
     <div type="ColorPicker" id="fillColor" onchange="onPropChanged('fillColor')" palette="white,null(transparent),black,red,blue,green,yellow,gray"></div>
     </div>`)
+    onViewAdded(function(view) {
+        view.onSelectionChanged = function(old) {
+            if (qview === view) {
+                onSelectionChanged(old)
+            }
+        }
+    })
 }
 
 // ----------------------------------------------------------
@@ -115,22 +111,21 @@ function installPropSelectors() {
 function installMousePos() {
     document.getElementById("properties").insertAdjacentHTML("beforeend", `&nbsp;<span id="mousepos"></span>`)
 
-    let old = qview.drawing.onmousemove
     let mousepos = document.getElementById("mousepos")
-    qview.drawing.onmousemove = function(event) {
-        let pos = qview.getMousePos(event)
-        mousepos.innerText = "MousePos: " + pos.x + ", " + pos.y
-        old(event)
-    }
+    onViewAdded(function(view) {
+        let old = view.drawing.onmousemove
+        view.drawing.onmousemove = function(event) {
+            let pos = view.getMousePos(event)
+            mousepos.innerText = "MousePos: " + pos.x + ", " + pos.y
+            old(event)
+        }
+    })
 }
 
 // ----------------------------------------------------------
 
-function installAccels() {
-    installControllersV2()
-    installPropSelectors()
-    installMousePos()
-    qcontrols.init()
-}
+installControllers()
+installPropSelectors()
+installMousePos()
 
 // ----------------------------------------------------------

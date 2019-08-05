@@ -1,5 +1,42 @@
 // ----------------------------------------------------------
 
+var qview = null
+var _onCurrentViewChangeds = []
+
+function onCurrentViewChanged(handle) {
+    _onCurrentViewChangeds.push(handle)
+}
+
+function setCurrentView(view) {
+    let old = qview
+    qview = view
+    for (let i in _onCurrentViewChangeds) {
+        let handle = _onCurrentViewChangeds[i]
+        handle(old)
+    }
+}
+
+function invalidate(reserved) {
+    qview.invalidateRect(reserved)
+}
+
+// ----------------------------------------------------------
+
+var _onViewAddeds = []
+
+function onViewAdded(handle) {
+    _onViewAddeds.push(handle)
+}
+
+function fireViewAdded(view) {
+    for (let i in _onViewAddeds) {
+        let handle = _onViewAddeds[i]
+        handle(view)
+    }
+}
+
+// ----------------------------------------------------------
+
 class QPaintView {
     constructor(drawingID) {
         this.style = new QShapeStyle(1, "black", "white")
@@ -11,7 +48,6 @@ class QPaintView {
         this.onmousemove = null
         this.onmouseup = null
         this.ondblclick = null
-        this.onmouseenter = null
         this.onkeydown = null
         this.onSelectionChanged = null
         this.onControllerReset = null
@@ -40,9 +76,7 @@ class QPaintView {
             }
         }
         drawing.onmouseenter = function(event) {
-            if (view.onmouseenter) {
-                view.onmouseenter(event)
-            }
+            setCurrentView(view)
         }
         document.onkeydown = function(event) {
             switch (event.keyCode) {
@@ -131,39 +165,6 @@ class QPaintView {
     _setCurrent(name, ctrl) {
         this._current = ctrl
         this._currentKey = name
-    }
-}
-
-// ----------------------------------------------------------
-
-var qview = null
-var onCurrentViewChanged = null
-
-function setCurrentView(view) {
-    console.log("setCurrentView:", view.drawing.id)
-    let old = qview
-    qview = view
-    if (onCurrentViewChanged != null) {
-        onCurrentViewChanged(old)
-    }
-}
-
-function invalidate(reserved) {
-    qview.invalidateRect(reserved)
-}
-
-// ----------------------------------------------------------
-
-var _onViewAddeds = []
-
-function onViewAdded(handle) {
-    _onViewAddeds.push(handle)
-}
-
-function fireViewAdded(view) {
-    for (let i in _onViewAddeds) {
-        let handle = _onViewAddeds[i]
-        handle(view)
     }
 }
 
