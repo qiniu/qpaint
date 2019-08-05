@@ -1,5 +1,5 @@
 class QPaintView {
-    constructor() {
+    constructor(drawingID) {
         this.style = new QShapeStyle(1, "black", "white")
         this.controllers = {}
         this._currentKey = ""
@@ -9,10 +9,11 @@ class QPaintView {
         this.onmousemove = null
         this.onmouseup = null
         this.ondblclick = null
+        this.onmouseenter = null
         this.onkeydown = null
         this.onSelectionChanged = null
         this.onControllerReset = null
-        let drawing = document.getElementById("drawing")
+        let drawing = document.getElementById(drawingID)
         let view = this
         drawing.onmousedown = function(event) {
             event.preventDefault()
@@ -34,6 +35,11 @@ class QPaintView {
             event.preventDefault()
             if (view.ondblclick != null) {
                 view.ondblclick(event)
+            }
+        }
+        drawing.onmouseenter = function(event) {
+            if (view.onmouseenter) {
+                view.onmouseenter(event)
             }
         }
         document.onkeydown = function(event) {
@@ -124,10 +130,4 @@ class QPaintView {
         this._current = ctrl
         this._currentKey = name
     }
-}
-
-var qview = new QPaintView()
-
-function invalidate(reserved) {
-    qview.invalidateRect(null)
 }

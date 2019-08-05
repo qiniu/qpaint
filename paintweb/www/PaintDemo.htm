@@ -8,7 +8,7 @@
 #drawing{border:1px solid lightgray}
 </style>
 <div id="menu"></div><br>
-<canvas id="drawing" width="1024" height="660">你的浏览器不支持Canvas！</canvas>
+<div id="drawing" type="PaintView" width="1024" height="660"></div>
 <script src="/base/jquery.js"></script>
 <script src="/base/spectrum.js"></script>
 <script src="controls/base.js?v=7"></script>
@@ -21,10 +21,10 @@
 <script src="creator/freepath.js?v=7"></script>
 <script src="creator/rect.js?v=7"></script>
 <script src="accel/select.js?v=1"></script>
-<script src="accel/menu.js?v=1"></script>
-<script src="PaintView.js?v=1"></script>
+<script src="accel/menu.js?v=2"></script>
+<script src="PaintView.js?v=4"></script>
 <script>
-    initPaintView("drawing")
+    qcontrols.init()
     installAccels()
 </script>
 </body>

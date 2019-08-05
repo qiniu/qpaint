@@ -1,5 +1,23 @@
 // ----------------------------------------------------------
 
+var qview = null
+var onCurrentViewChanged = null
+
+function setCurrentView(view) {
+    console.log("setCurrentView:", view.drawing.id)
+    let old = qview
+    qview = view
+    if (onCurrentViewChanged != null) {
+        onCurrentViewChanged(old)
+    }
+}
+
+function invalidate(reserved) {
+    qview.invalidateRect(reserved)
+}
+
+// ----------------------------------------------------------
+
 function installControllersV1() {
     document.getElementById("menu").innerHTML = `
     <input type="button" id="ShapeSelector" value="Select Shape" style="visibility:hidden">
@@ -126,6 +144,11 @@ function installMousePos() {
 
 // ----------------------------------------------------------
 
-installControllersV2()
-installPropSelectors()
-installMousePos()
+function installAccels() {
+    installControllersV2()
+    installPropSelectors()
+    installMousePos()
+    qcontrols.init()
+}
+
+// ----------------------------------------------------------
