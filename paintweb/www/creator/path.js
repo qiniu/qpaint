@@ -91,8 +91,8 @@ class QPathCreator {
     }
 }
 
-function registerPathCreator(view) {
+onViewAdded(function(view) {
     view.registerController("PathCreator", function() {
         return new QPathCreator(view, false)
     })
-}
+})

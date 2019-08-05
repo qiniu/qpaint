@@ -71,8 +71,8 @@ class QFreePathCreator {
     }
 }
 
-function registerFreePathCreator(view) {
+onViewAdded(function(view) {
     view.registerController("FreePathCreator", function() {
         return new QFreePathCreator(view)
     })
-}
+})

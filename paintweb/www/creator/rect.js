@@ -81,26 +81,17 @@ class QRectCreator {
     }
 }
 
-function registerLineCreator(view) {
+onViewAdded(function(view) {
     view.registerController("LineCreator", function() {
         return new QRectCreator(view, "line")
     })
-}
-
-function registerRectCreator(view) {
     view.registerController("RectCreator", function() {
         return new QRectCreator(view, "rect")
     })
-}
-
-function registerEllipseCreator(view) {
     view.registerController("EllipseCreator", function() {
         return new QRectCreator(view, "ellipse")
     })
-}
-
-function registerCircleCreator(view) {
     view.registerController("CircleCreator", function() {
         return new QRectCreator(view, "circle")
     })
-}
+})

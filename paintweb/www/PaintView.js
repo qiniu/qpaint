@@ -1,12 +1,6 @@
 function newPaintView(drawingID) {
     let view = new QPaintView(drawingID)
-    registerFreePathCreator(view)
-    registerPathCreator(view)
-    registerLineCreator(view)
-    registerRectCreator(view)
-    registerEllipseCreator(view)
-    registerCircleCreator(view)
-    registerShapeSelector(view)
+    fireViewAdded(view)
     return view
 }
 

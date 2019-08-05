@@ -101,10 +101,10 @@ class QShapeSelector {
     }
 }
 
-function registerShapeSelector(view) {
+onViewAdded(function(view) {
     view.registerController("ShapeSelector", function() {
         return new QShapeSelector(view)
     })
-}
+})
 
 // ----------------------------------------------------------
