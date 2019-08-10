@@ -136,43 +136,26 @@ class QPath {
     }
 }
 
-class QPaintDoc {
-    constructor() {
-        this.shapes = []
-    }
-
-    addShape(shape) {
-        if (shape != null) {
-            this.shapes.push(shape)
-        }
-    }
-
-    onpaint(ctx) {
-        let shapes = this.shapes
-        for (let i in shapes) {
-            shapes[i].onpaint(ctx)
-        }
-    }
-}
-
 class QPaintView {
     constructor() {
         this.properties = {
             lineWidth: 1,
             lineColor: "black"
         }
-        this._currentKey = ""
-        let drawing = document.getElementById("drawing")
-        this.drawing = drawing
-        this.doc = new QPaintDoc()
+        this.shapes = []
+        this.currentKey = ""
+        this.drawing = document.getElementById("drawing")
     }
 
-    get currentKey() {
-        return this._currentKey
-    }
     get lineStyle() {
         let props = this.properties
         return new QLineStyle(props.lineWidth, props.lineColor)
+    }
+
+    addShape(shape) {
+        if (shape != null) {
+            this.shapes.push(shape)
+        }
     }
 
     getMousePos(event) {
@@ -190,6 +173,9 @@ class QPaintView {
     }
 }
 
+var pathCreator = {}
+var freePathCreator = {}
+var rectCreator = {}
 var qview = new QPaintView()
 
 function invalidate(reserved) {
@@ -221,13 +207,12 @@ function onLineColorChanged() {
     qview.properties.lineColor = elem.value
 }
 
-var pathCreator = {}
-var freePathCreator = {}
-var rectCreator = {}
-
 function onpaint(ctx) {
-    qview.doc.onpaint(ctx)
-    switch (qview._currentKey) {
+    let shapes = qview.shapes
+    for (let i in shapes) {
+        shapes[i].onpaint(ctx)
+    }
+    switch (qview.currentKey) {
     case "PathCreator":
         if (pathCreator.started) {
             let props = qview.properties
@@ -268,7 +253,7 @@ function onpaint(ctx) {
 
 function mousedown(event) {
     event.preventDefault()
-    switch (qview._currentKey) {
+    switch (qview.currentKey) {
     case "PathCreator":
         pathCreator.toPos = qview.getMousePos(event)
         if (pathCreator.started) {
@@ -294,7 +279,7 @@ function mousemove(event) {
     let pos = qview.getMousePos(event)
     let mousepos = document.getElementById("mousepos")
     mousepos.innerText = "MousePos: " + pos.x + ", " + pos.y
-    switch (qview._currentKey) {
+    switch (qview.currentKey) {
     case "PathCreator":
         if (pathCreator.started) {
             pathCreator.toPos = qview.getMousePos(event)
@@ -317,19 +302,19 @@ function mousemove(event) {
 }
 
 function mouseup(event) {
-    switch (qview._currentKey) {
+    switch (qview.currentKey) {
     case "PathCreator":
         return
     case "FreePathCreator":
         if (freePathCreator.started) {
-            qview.doc.addShape(freePathCreator.buildShape())
+            qview.addShape(freePathCreator.buildShape())
             freePathCreator.reset()
         }
         return
     case "RectCreator": case "LineCreator": case "EllipseCreator": case "CircleCreator":
         if (rectCreator.started) {
             rectCreator.rect.p2 = qview.getMousePos(event)
-            qview.doc.addShape(rectCreator.buildShape())
+            qview.addShape(rectCreator.buildShape())
             rectCreator.reset()
         }
         return
@@ -338,10 +323,10 @@ function mouseup(event) {
 
 function dblclick(event) {
     event.preventDefault()
-    switch (qview._currentKey) {
+    switch (qview.currentKey) {
     case "PathCreator":
         if (pathCreator.started) {
-            qview.doc.addShape(pathCreator.buildShape())
+            qview.addShape(pathCreator.buildShape())
             pathCreator.reset()
         }
         return
@@ -353,7 +338,7 @@ document.onkeydown = function(event) {
     case 9: case 13: case 27:
         event.preventDefault()
     }
-    switch (qview._currentKey) {
+    switch (qview.currentKey) {
     case "PathCreator":
         switch (event.keyCode) {
         case 13: // keyEnter
@@ -460,7 +445,7 @@ function registerRectCreator(shapeType) {
 }
 
 function invokeController(name) {
-    qview._currentKey = name
+    qview.currentKey = name
     switch (name) {
     case "PathCreator":
         pathCreator.points = []
