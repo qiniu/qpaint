@@ -6,13 +6,571 @@
 <style>
 #drawing{border:1px solid lightgray}
 </style>
-<div id="menu"></div><br>
-<canvas id="drawing" width="1024" height="660">你的浏览器不支持Canvas！</canvas>
-<script src="dom.js"></script>
-<script src="view.js"></script>
-<script src="creator/path.js?v=7"></script>
-<script src="creator/freepath.js?v=7"></script>
-<script src="creator/rect.js?v=7"></script>
-<script src="accel/menu.js"></script>
+<div id="menu">
+    <input type="button" id="PathCreator" value="Create Path" onclick="clickBtn('PathCreator')">
+    <input type="button" id="FreePathCreator" value="Create FreePath" onclick="clickBtn('FreePathCreator')">
+    <input type="button" id="LineCreator" value="Create Line" onclick="clickBtn('LineCreator')">
+    <input type="button" id="RectCreator" value="Create Rect" onclick="clickBtn('RectCreator')">
+    <input type="button" id="EllipseCreator" value="Create Ellipse" onclick="clickBtn('EllipseCreator')">
+    <input type="button" id="CircleCreator" value="Create Circle" onclick="clickBtn('CircleCreator')">
+</div><br>
+
+<div id="properties">
+<label for="LineWidth">LineWidth: </label>
+<select id="LineWidth" onchange="onLineWidthChanged()">
+    <option value="1">1</option>
+    <option value="3">3</option>
+    <option value="5">5</option>
+    <option value="7">7</option>
+    <option value="9">9</option>
+    <option value="11">11</option>
+</select>&nbsp;
+
+<label for="LineColor">LineColor: </label>
+<select id="LineColor" onchange="onLineColorChanged()">
+    <option value="black">black</option>
+    <option value="red">red</option>
+    <option value="blue">blue</option>
+    <option value="green">green</option>
+    <option value="yellow">yellow</option>
+    <option value="gray">gray</option>
+</select>&nbsp;
+
+<span id="mousepos"></span>
+</div><br>
+
+<canvas
+    id="drawing" width="1024" height="660"
+    onmousedown="mousedown(event)" onmousemove="mousemove(event)"
+    onmouseup="mouseup(event)" ondblclick="dblclick(event)">你的浏览器不支持Canvas！
+</canvas>
+<script>
+class QLineStyle {
+    constructor(width, color) {
+        this.width = width
+        this.color = color
+    }
+}
+
+class QLine {
+    constructor(point1, point2, lineStyle) {
+        this.pt1 = point1
+        this.pt2 = point2
+        this.lineStyle = lineStyle
+    }
+
+    onpaint(ctx) {
+        let lineStyle = this.lineStyle
+        ctx.lineWidth = lineStyle.width
+        ctx.strokeStyle = lineStyle.color
+        ctx.beginPath()
+        ctx.moveTo(this.pt1.x, this.pt1.y)
+        ctx.lineTo(this.pt2.x, this.pt2.y)
+        ctx.stroke()
+    }
+}
+
+class QRect {
+    constructor(r, lineStyle) {
+        this.x = r.x
+        this.y = r.y
+        this.width = r.width
+        this.height = r.height
+        this.lineStyle = lineStyle
+    }
+
+    onpaint(ctx) {
+        let lineStyle = this.lineStyle
+        ctx.lineWidth = lineStyle.width
+        ctx.strokeStyle = lineStyle.color
+        ctx.beginPath()
+        ctx.rect(this.x, this.y, this.width, this.height)
+        ctx.stroke()
+    }
+}
+
+class QEllipse {
+    constructor(x, y, radiusX, radiusY, lineStyle) {
+        this.x = x
+        this.y = y
+        this.radiusX = radiusX
+        this.radiusY = radiusY
+        this.lineStyle = lineStyle
+    }
+
+    onpaint(ctx) {
+        let lineStyle = this.lineStyle
+        ctx.lineWidth = lineStyle.width
+        ctx.strokeStyle = lineStyle.color
+        ctx.beginPath()
+        ctx.ellipse(this.x, this.y, this.radiusX, this.radiusY, 0, 0, 2 * Math.PI)
+        ctx.stroke()
+    }
+}
+
+class QPath {
+    constructor(points, close, lineStyle) {
+        this.points = points
+        this.close = close
+        this.lineStyle = lineStyle
+    }
+
+    onpaint(ctx) {
+        let n = this.points.length
+        if (n < 1) {
+            return
+        }
+        let points = this.points
+        let lineStyle = this.lineStyle
+        ctx.lineWidth = lineStyle.width
+        ctx.strokeStyle = lineStyle.color
+        ctx.beginPath()
+        ctx.moveTo(points[0].x, points[0].y)
+        for (let i = 1; i < n; i++) {
+            ctx.lineTo(points[i].x, points[i].y)
+        }
+        if (this.close) {
+            ctx.closePath()
+        }
+        ctx.stroke()
+    }
+}
+
+class QPaintDoc {
+    constructor() {
+        this.shapes = []
+    }
+
+    addShape(shape) {
+        if (shape != null) {
+            this.shapes.push(shape)
+        }
+    }
+
+    onpaint(ctx) {
+        let shapes = this.shapes
+        for (let i in shapes) {
+            shapes[i].onpaint(ctx)
+        }
+    }
+}
+
+class QPaintView {
+    constructor() {
+        this.properties = {
+            lineWidth: 1,
+            lineColor: "black"
+        }
+        this.controllers = {}
+        this._currentKey = ""
+        this._current = null
+        this.onmousedown = null
+        this.onmousemove = null
+        this.onmouseup = null
+        this.ondblclick = null
+        this.onkeydown = null
+        let drawing = document.getElementById("drawing")
+        this.drawing = drawing
+        this.doc = new QPaintDoc()
+    }
+
+    get currentKey() {
+        return this._currentKey
+    }
+    get lineStyle() {
+        let props = this.properties
+        return new QLineStyle(props.lineWidth, props.lineColor)
+    }
+
+    onpaint(ctx) {
+        this.doc.onpaint(ctx)
+        if (this._current != null) {
+            this._current.onpaint(ctx)
+        }
+    }
+
+    getMousePos(event) {
+        return {
+            x: event.offsetX,
+            y: event.offsetY
+        }
+    }
+
+    invalidateRect(reserved) {
+        let ctx = this.drawing.getContext("2d")
+        let bound = this.drawing.getBoundingClientRect()
+        ctx.clearRect(0, 0, bound.width, bound.height)
+        this.onpaint(ctx)
+    }
+
+    registerController(name, controller) {
+        if (name in this.controllers) {
+            alert("Controller exists: " + name)
+        } else {
+            this.controllers[name] = controller
+        }
+    }
+    invokeController(name) {
+        this.stopController()
+        if (name in this.controllers) {
+            let controller = this.controllers[name]
+            this._setCurrent(name, controller())
+        }
+    }
+    stopController() {
+        if (this._current != null) {
+            this._current.stop()
+            this._setCurrent("", null)
+        }
+    }
+
+    _setCurrent(name, ctrl) {
+        this._current = ctrl
+        this._currentKey = name
+    }
+}
+
+var qview = new QPaintView()
+
+function invalidate(reserved) {
+    qview.invalidateRect(null)
+}
+
+function clickBtn(key) {
+    console.log("click:", key)
+    if (qview.currentKey != "") {
+        document.getElementById(qview.currentKey).removeAttribute("style")
+    }
+    let elem = document.getElementById(key)
+    elem.style.borderColor = "blue"
+    elem.blur()
+    qview.invokeController(key)
+}
+
+function onLineWidthChanged() {
+    let elem = document.getElementById("LineWidth")
+    elem.blur()
+    let val = parseInt(elem.value)
+    if (val > 0) {
+        qview.properties.lineWidth = val
+    }
+}
+
+function onLineColorChanged() {
+    let elem = document.getElementById("LineColor")
+    elem.blur()
+    qview.properties.lineColor = elem.value
+}
+
+function mousedown(event) {
+    event.preventDefault()
+    if (qview.onmousedown != null) {
+        qview.onmousedown(event)
+    }
+}
+
+function mousemove(event) {
+    let pos = qview.getMousePos(event)
+    let mousepos = document.getElementById("mousepos")
+    mousepos.innerText = "MousePos: " + pos.x + ", " + pos.y
+    if (qview.onmousemove != null) {
+        qview.onmousemove(event)
+    }
+}
+
+function mouseup(event) {
+    if (qview.onmouseup != null) {
+        qview.onmouseup(event)
+    }
+}
+
+function dblclick(event) {
+    event.preventDefault()
+    if (qview.ondblclick != null) {
+        qview.ondblclick(event)
+    }
+}
+
+document.onkeydown = function(event) {
+    switch (event.keyCode) {
+    case 9: case 13: case 27:
+        event.preventDefault()
+    }
+    if (qview.onkeydown != null) {
+        qview.onkeydown(event)
+    }
+}
+
+class QPathCreator {
+    constructor(close) {
+        this.points = []
+        this.close = close
+        this.fromPos = this.toPos = {x: 0, y: 0}
+        this.started = false
+        let ctrl = this
+        qview.onmousedown = function(event) { ctrl.onmousedown(event) }
+        qview.onmousemove = function(event) { ctrl.onmousemove(event) }
+        qview.ondblclick = function(event) { ctrl.ondblclick(event) }
+        qview.onkeydown = function(event) { ctrl.onkeydown(event) }
+    }
+    stop() {
+        qview.onmousedown = null
+        qview.onmousemove = null
+        qview.ondblclick = null
+        qview.onkeydown = null
+    }
+
+    reset() {
+        this.points = []
+        this.started = false
+        invalidate(null)
+    }
+    buildShape() {
+        let points = [{x: this.fromPos.x, y: this.fromPos.y}]
+        for (let i in this.points) {
+            points.push(this.points[i])
+        }
+        return new QPath(points, this.close, qview.lineStyle)
+    }
+
+    onmousedown(event) {
+        this.toPos = qview.getMousePos(event)
+        if (this.started) {
+            this.points.push(this.toPos)
+        } else {
+            this.fromPos = this.toPos
+            this.started = true
+        }
+        invalidate(null)
+    }
+    onmousemove(event) {
+        if (this.started) {
+            this.toPos = qview.getMousePos(event)
+            invalidate(null)
+        }
+    }
+    ondblclick(event) {
+        if (this.started) {
+            qview.doc.addShape(this.buildShape())
+            this.reset()
+        }
+    }
+    onkeydown(event) {
+        switch (event.keyCode) {
+        case 13: // keyEnter
+            let n = this.points.length
+            if (n == 0 || this.points[n-1] !== this.toPos) {
+                this.points.push(this.toPos)
+            }
+            this.ondblclick(event)
+            break
+        case 27: // keyEsc
+            this.reset()
+        }
+    }
+
+    onpaint(ctx) {
+        if (this.started) {
+            let props = qview.properties
+            ctx.lineWidth = props.lineWidth
+            ctx.strokeStyle = props.lineColor
+            ctx.beginPath()
+            ctx.moveTo(this.fromPos.x, this.fromPos.y)
+            for (let i in this.points) {
+                ctx.lineTo(this.points[i].x, this.points[i].y)
+            }
+            ctx.lineTo(this.toPos.x, this.toPos.y)
+            if (this.close) {
+                ctx.closePath()
+            }
+            ctx.stroke()
+        }
+    }
+}
+
+qview.registerController("PathCreator", function() {
+    return new QPathCreator(false)
+})
+
+class QFreePathCreator {
+    constructor() {
+        this.points = []
+        this.fromPos = {x: 0, y: 0}
+        this.started = false
+        let ctrl = this
+        qview.onmousedown = function(event) { ctrl.onmousedown(event) }
+        qview.onmousemove = function(event) { ctrl.onmousemove(event) }
+        qview.onmouseup = function(event) { ctrl.onmouseup(event) }
+        qview.onkeydown = function(event) { ctrl.onkeydown(event) }
+    }
+    stop() {
+        qview.onmousedown = null
+        qview.onmousemove = null
+        qview.onmouseup = null
+        qview.onkeydown = null
+    }
+
+    reset() {
+        this.points = []
+        this.started = false
+        invalidate(null)
+    }
+    buildShape() {
+        let points = [{x: this.fromPos.x, y: this.fromPos.y}]
+        for (let i in this.points) {
+            points.push(this.points[i])
+        }
+        return new QPath(points, this.close, qview.lineStyle)
+    }
+
+    onmousedown(event) {
+        this.fromPos = qview.getMousePos(event)
+        this.started = true
+    }
+    onmousemove(event) {
+        if (this.started) {
+            this.points.push(qview.getMousePos(event))
+            invalidate(null)
+        }
+    }
+    onmouseup(event) {
+        if (this.started) {
+            qview.doc.addShape(this.buildShape())
+            this.reset()
+        }
+    }
+    onkeydown(event) {
+        if (event.keyCode == 27) { // keyEsc
+            this.reset()
+        }
+    }
+
+    onpaint(ctx) {
+        if (this.started) {
+            let props = qview.properties
+            ctx.lineWidth = props.lineWidth
+            ctx.strokeStyle = props.lineColor
+            ctx.beginPath()
+            ctx.moveTo(this.fromPos.x, this.fromPos.y)
+            for (let i in this.points) {
+                ctx.lineTo(this.points[i].x, this.points[i].y)
+            }
+            ctx.stroke()
+        }
+    }
+}
+
+qview.registerController("FreePathCreator", function() {
+    return new QFreePathCreator()
+})
+
+function normalizeRect(rect) {
+    let x = rect.p1.x
+    let y = rect.p1.y
+    let width = rect.p2.x - x
+    let height = rect.p2.y - y
+    if (width < 0) {
+        x = rect.p2.x
+        width = -width
+    }
+    if (height < 0) {
+        y = rect.p2.y
+        height = -height
+    }
+    return {x: x, y: y, width: width, height: height}
+}
+
+class QRectCreator {
+    constructor(shapeType) {
+        this.shapeType = shapeType
+        this.rect = {
+            p1: {x: 0, y: 0},
+            p2: {x: 0, y: 0}
+        }
+        this.started = false
+        let ctrl = this
+        qview.onmousedown = function(event) { ctrl.onmousedown(event) }
+        qview.onmousemove = function(event) { ctrl.onmousemove(event) }
+        qview.onmouseup = function(event) { ctrl.onmouseup(event) }
+        qview.onkeydown = function(event) { ctrl.onkeydown(event) }
+    }
+    stop() {
+        qview.onmousedown = null
+        qview.onmousemove = null
+        qview.onmouseup = null
+        qview.onkeydown = null
+    }
+
+    reset() {
+        this.started = false
+        invalidate(this.rect)
+    }
+    buildShape() {
+        let rect = this.rect
+        let r = normalizeRect(rect)
+        switch (this.shapeType) {
+        case "line":
+            return new QLine(rect.p1, rect.p2, qview.lineStyle)
+        case "rect":
+            return new QRect(r, qview.lineStyle)
+        case "ellipse":
+            let rx = r.width / 2
+            let ry = r.height / 2
+            return new QEllipse(r.x + rx, r.y + ry, rx, ry, qview.lineStyle)
+        case "circle":
+            let rc = Math.sqrt(r.width * r.width + r.height * r.height)
+            return new QEllipse(rect.p1.x, rect.p1.y, rc, rc, qview.lineStyle)
+        default:
+            alert("unknown shapeType: " + this.shapeType)
+            return null
+        }
+    }
+
+    onmousedown(event) {
+        this.rect.p1 = qview.getMousePos(event)
+        this.started = true
+    }
+    onmousemove(event) {
+        if (this.started) {
+            this.rect.p2 = qview.getMousePos(event)
+            invalidate(this.rect)
+        }
+    }
+    onmouseup(event) {
+        if (this.started) {
+            this.rect.p2 = qview.getMousePos(event)
+            qview.doc.addShape(this.buildShape())
+            this.reset()
+        }
+    }
+    onkeydown(event) {
+        if (event.keyCode == 27) { // keyEsc
+            this.reset()
+        }
+    }
+
+    onpaint(ctx) {
+        if (this.started) {
+            this.buildShape().onpaint(ctx)
+        }
+    }
+}
+
+qview.registerController("LineCreator", function() {
+    return new QRectCreator("line")
+})
+
+qview.registerController("RectCreator", function() {
+    return new QRectCreator("rect")
+})
+
+qview.registerController("EllipseCreator", function() {
+    return new QRectCreator("ellipse")
+})
+
+qview.registerController("CircleCreator", function() {
+    return new QRectCreator("circle")
+})
+</script>
 </body>
 </html>
