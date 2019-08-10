@@ -136,50 +136,42 @@ class QPath {
     }
 }
 
-class QPaintView {
-    constructor() {
-        this.properties = {
-            lineWidth: 1,
-            lineColor: "black"
-        }
-        this.shapes = []
-        this.currentKey = ""
-        this.drawing = document.getElementById("drawing")
-    }
-
-    get lineStyle() {
-        let props = this.properties
-        return new QLineStyle(props.lineWidth, props.lineColor)
-    }
-
-    addShape(shape) {
-        if (shape != null) {
-            this.shapes.push(shape)
-        }
-    }
-
-    getMousePos(event) {
-        return {
-            x: event.offsetX,
-            y: event.offsetY
-        }
-    }
-
-    invalidateRect(reserved) {
-        let ctx = this.drawing.getContext("2d")
-        let bound = this.drawing.getBoundingClientRect()
-        ctx.clearRect(0, 0, bound.width, bound.height)
-        onpaint(ctx)
-    }
-}
-
 var pathCreator = {}
 var freePathCreator = {}
 var rectCreator = {}
-var qview = new QPaintView()
+var qview = {
+    properties: {
+        lineWidth: 1,
+        lineColor: "black"
+    },
+    shapes: [],
+    currentKey: "",
+    drawing: document.getElementById("drawing")
+}
+
+qview.getLineStyle = function() {
+    let props = qview.properties
+    return new QLineStyle(props.lineWidth, props.lineColor)
+}
+
+qview.addShape = function(shape) {
+    if (shape != null) {
+        qview.shapes.push(shape)
+    }
+}
+
+qview.getMousePos = function(event) {
+    return {
+        x: event.offsetX,
+        y: event.offsetY
+    }
+}
 
 function invalidate(reserved) {
-    qview.invalidateRect(null)
+    let ctx = qview.drawing.getContext("2d")
+    let bound = qview.drawing.getBoundingClientRect()
+    ctx.clearRect(0, 0, bound.width, bound.height)
+    onpaint(ctx)
 }
 
 function clickBtn(key) {
@@ -376,7 +368,7 @@ pathCreator.buildShape = function() {
     for (let i in pathCreator.points) {
         points.push(pathCreator.points[i])
     }
-    return new QPath(points, pathCreator.close, qview.lineStyle)
+    return new QPath(points, pathCreator.close, qview.getLineStyle())
 }
 
 freePathCreator.reset = function() {
@@ -390,7 +382,7 @@ freePathCreator.buildShape = function() {
     for (let i in freePathCreator.points) {
         points.push(freePathCreator.points[i])
     }
-    return new QPath(points, freePathCreator.close, qview.lineStyle)
+    return new QPath(points, freePathCreator.close, qview.getLineStyle())
 }
 
 function normalizeRect(rect) {
@@ -419,16 +411,16 @@ rectCreator.buildShape = function() {
     let r = normalizeRect(rect)
     switch (rectCreator.shapeType) {
     case "line":
-        return new QLine(rect.p1, rect.p2, qview.lineStyle)
+        return new QLine(rect.p1, rect.p2, qview.getLineStyle())
     case "rect":
-        return new QRect(r, qview.lineStyle)
+        return new QRect(r, qview.getLineStyle())
     case "ellipse":
         let rx = r.width / 2
         let ry = r.height / 2
-        return new QEllipse(r.x + rx, r.y + ry, rx, ry, qview.lineStyle)
+        return new QEllipse(r.x + rx, r.y + ry, rx, ry, qview.getLineStyle())
     case "circle":
         let rc = Math.sqrt(r.width * r.width + r.height * r.height)
-        return new QEllipse(rect.p1.x, rect.p1.y, rc, rc, qview.lineStyle)
+        return new QEllipse(rect.p1.x, rect.p1.y, rc, rc, qview.getLineStyle())
     default:
         alert("unknown shapeType: " + rectCreator.shapeType)
         return null
