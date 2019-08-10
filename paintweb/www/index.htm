@@ -161,14 +161,7 @@ class QPaintView {
             lineWidth: 1,
             lineColor: "black"
         }
-        this.controllers = {}
         this._currentKey = ""
-        this._current = null
-        this.onmousedown = null
-        this.onmousemove = null
-        this.onmouseup = null
-        this.ondblclick = null
-        this.onkeydown = null
         let drawing = document.getElementById("drawing")
         this.drawing = drawing
         this.doc = new QPaintDoc()
@@ -195,32 +188,6 @@ class QPaintView {
         ctx.clearRect(0, 0, bound.width, bound.height)
         onpaint(ctx)
     }
-
-    registerController(name, controller) {
-        if (name in this.controllers) {
-            alert("Controller exists: " + name)
-        } else {
-            this.controllers[name] = controller
-        }
-    }
-    invokeController(name) {
-        this.stopController()
-        if (name in this.controllers) {
-            let controller = this.controllers[name]
-            this._setCurrent(name, controller())
-        }
-    }
-    stopController() {
-        if (this._current != null) {
-            this._current.stop()
-            this._setCurrent("", null)
-        }
-    }
-
-    _setCurrent(name, ctrl) {
-        this._current = ctrl
-        this._currentKey = name
-    }
 }
 
 var qview = new QPaintView()
@@ -236,7 +203,7 @@ function clickBtn(key) {
     let elem = document.getElementById(key)
     elem.style.borderColor = "blue"
     elem.blur()
-    qview.invokeController(key)
+    invokeController(key)
 }
 
 function onLineWidthChanged() {
@@ -297,9 +264,6 @@ function onpaint(ctx) {
         }
         return
     }
-    if (qview._current != null) {
-        qview._current.onpaint(ctx)
-    }
 }
 
 function mousedown(event) {
@@ -323,9 +287,6 @@ function mousedown(event) {
         rectCreator.rect.p1 = qview.getMousePos(event)
         rectCreator.started = true
         return
-    }
-    if (qview.onmousedown != null) {
-        qview.onmousedown(event)
     }
 }
 
@@ -353,9 +314,6 @@ function mousemove(event) {
         }
         return
     }
-    if (qview.onmousemove != null) {
-        qview.onmousemove(event)
-    }
 }
 
 function mouseup(event) {
@@ -376,9 +334,6 @@ function mouseup(event) {
         }
         return
     }
-    if (qview.onmouseup != null) {
-        qview.onmouseup(event)
-    }
 }
 
 function dblclick(event) {
@@ -390,9 +345,6 @@ function dblclick(event) {
             pathCreator.reset()
         }
         return
-    }
-    if (qview.ondblclick != null) {
-        qview.ondblclick(event)
     }
 }
 
@@ -426,9 +378,6 @@ document.onkeydown = function(event) {
         }
         return
     }
-    if (qview.onkeydown != null) {
-        qview.onkeydown(event)
-    }
 }
 
 pathCreator.reset = function() {
@@ -445,13 +394,6 @@ pathCreator.buildShape = function() {
     return new QPath(points, pathCreator.close, qview.lineStyle)
 }
 
-qview.registerController("PathCreator", function() {
-    pathCreator.points = []
-    pathCreator.close = false
-    pathCreator.fromPos = pathCreator.toPos = {x: 0, y: 0}
-    pathCreator.started = false
-})
-
 freePathCreator.reset = function() {
     freePathCreator.points = []
     freePathCreator.started = false
@@ -465,12 +407,6 @@ freePathCreator.buildShape = function() {
     }
     return new QPath(points, freePathCreator.close, qview.lineStyle)
 }
-
-qview.registerController("FreePathCreator", function() {
-    freePathCreator.points = []
-    freePathCreator.fromPos = {x: 0, y: 0}
-    freePathCreator.started = false
-})
 
 function normalizeRect(rect) {
     let x = rect.p1.x
@@ -486,15 +422,6 @@ function normalizeRect(rect) {
         height = -height
     }
     return {x: x, y: y, width: width, height: height}
-}
-
-function registerRectCreator(shapeType) {
-    rectCreator.shapeType = shapeType
-    rectCreator.rect = {
-        p1: {x: 0, y: 0},
-        p2: {x: 0, y: 0}
-    }
-    rectCreator.started = false
 }
 
 rectCreator.reset = function() {
@@ -523,21 +450,43 @@ rectCreator.buildShape = function() {
     }
 }
 
-qview.registerController("LineCreator", function() {
-    registerRectCreator("line")
-})
+function registerRectCreator(shapeType) {
+    rectCreator.shapeType = shapeType
+    rectCreator.rect = {
+        p1: {x: 0, y: 0},
+        p2: {x: 0, y: 0}
+    }
+    rectCreator.started = false
+}
 
-qview.registerController("RectCreator", function() {
-    registerRectCreator("rect")
-})
-
-qview.registerController("EllipseCreator", function() {
-    registerRectCreator("ellipse")
-})
-
-qview.registerController("CircleCreator", function() {
-    registerRectCreator("circle")
-})
+function invokeController(name) {
+    qview._currentKey = name
+    switch (name) {
+    case "PathCreator":
+        pathCreator.points = []
+        pathCreator.close = false
+        pathCreator.fromPos = pathCreator.toPos = {x: 0, y: 0}
+        pathCreator.started = false
+        return
+    case "FreePathCreator":
+        freePathCreator.points = []
+        freePathCreator.fromPos = {x: 0, y: 0}
+        freePathCreator.started = false
+        return
+    case "RectCreator":
+        registerRectCreator("rect")
+        return
+    case "LineCreator":
+        registerRectCreator("line")
+        return
+    case "EllipseCreator":
+        registerRectCreator("ellipse")
+        return
+    case "CircleCreator":
+        registerRectCreator("circle")
+        return
+    }
+}
 </script>
 </body>
 </html>
