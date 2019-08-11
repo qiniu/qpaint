@@ -7,12 +7,12 @@
 #drawing{border:1px solid lightgray}
 </style>
 <div id="menu">
-    <input type="button" id="PathCreator" value="Create Path" onclick="clickBtn('PathCreator')">
-    <input type="button" id="FreePathCreator" value="Create FreePath" onclick="clickBtn('FreePathCreator')">
-    <input type="button" id="LineCreator" value="Create Line" onclick="clickBtn('LineCreator')">
-    <input type="button" id="RectCreator" value="Create Rect" onclick="clickBtn('RectCreator')">
-    <input type="button" id="EllipseCreator" value="Create Ellipse" onclick="clickBtn('EllipseCreator')">
-    <input type="button" id="CircleCreator" value="Create Circle" onclick="clickBtn('CircleCreator')">
+    <input type="button" id="PathCreator" value="Create Path" onclick="clickBtn(this)">
+    <input type="button" id="FreePathCreator" value="Create FreePath" onclick="clickBtn(this)">
+    <input type="button" id="LineCreator" value="Create Line" onclick="clickBtn(this)">
+    <input type="button" id="RectCreator" value="Create Rect" onclick="clickBtn(this)">
+    <input type="button" id="EllipseCreator" value="Create Ellipse" onclick="clickBtn(this)">
+    <input type="button" id="CircleCreator" value="Create Circle" onclick="clickBtn(this)">
 </div><br>
 
 <div id="properties">
@@ -174,7 +174,8 @@ function invalidate(reserved) {
     onpaint(ctx)
 }
 
-function clickBtn(key) {
+function clickBtn(input) {
+    let key = input.id
     if (qview.currentKey != "") {
         document.getElementById(qview.currentKey).removeAttribute("style")
     }
