@@ -427,7 +427,7 @@ rectCreator.buildShape = function() {
     }
 }
 
-function registerRectCreator(shapeType) {
+function invokeRectCreator(shapeType) {
     rectCreator.shapeType = shapeType
     rectCreator.rect = {
         p1: {x: 0, y: 0},
@@ -451,16 +451,16 @@ function invokeController(name) {
         freePathCreator.started = false
         return
     case "RectCreator":
-        registerRectCreator("rect")
+        invokeRectCreator("rect")
         return
     case "LineCreator":
-        registerRectCreator("line")
+        invokeRectCreator("line")
         return
     case "EllipseCreator":
-        registerRectCreator("ellipse")
+        invokeRectCreator("ellipse")
         return
     case "CircleCreator":
-        registerRectCreator("circle")
+        invokeRectCreator("circle")
         return
     }
 }
