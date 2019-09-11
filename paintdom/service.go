@@ -1,186 +1,120 @@
 package paintdom
 
 import (
-	"bytes"
-	"encoding/json"
 	"log"
 	"net/http"
-	"io"
-	"strconv"
-	"strings"
-	"syscall"
+
+	"github.com/qiniu/http/restrpc"
 )
 
 // ---------------------------------------------------
 
 type M map[string]interface{}
-type RouteTable map[string]func(w http.ResponseWriter, req *http.Request, args []string)
 
 type Service struct {
-	doc        *Document
-	routeTable RouteTable
+	doc *Document
 }
 
 func NewService(doc *Document) (p *Service) {
 	p = &Service{doc: doc}
-	p.routeTable = RouteTable{
-		"POST/drawings":              p.PostDrawings,
-		"GET/drawings/*":             p.GetDrawing,
-		"DELETE/drawings/*":          p.DeleteDrawing,
-		"POST/drawings/*/sync":       p.PostDrawingSync,
-		"POST/drawings/*/shapes":     p.PostShapes,
-		"GET/drawings/*/shapes/*":    p.GetShape,
-		"POST/drawings/*/shapes/*":   p.PostShape,
-		"DELETE/drawings/*/shapes/*": p.DeleteShape,
-	}
 	return
 }
 
-func (p *Service) PostDrawingSync(w http.ResponseWriter, req *http.Request, args []string) {
-	b := bytes.NewBuffer(nil)
-	io.Copy(b, req.Body)
-	log.Println(req.Method, req.URL, b.String())
+var routeTable = [][2]string{
+	{"POST /drawings", "PostDrawings"},
+	{"GET /drawings/*", "GetDrawing"},
+	{"DELETE /drawings/*", "DeleteDrawing"},
+	{"POST /drawings/*/sync", "PostDrawingSync"},
+	{"POST /drawings/*/shapes", "PostShapes"},
+	{"GET /drawings/*/shapes/*", "GetShape"},
+	{"POST /drawings/*/shapes/*", "PostShape"},
+	{"DELETE /drawings/*/shapes/*", "DeleteShape"},
+}
 
-	var ds serviceDrawingSync
-	err := json.NewDecoder(b).Decode(&ds)
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
+func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *restrpc.Env) (err error) {
+	log.Println(env.Req.Method, env.Req.URL, *ds)
 
 	changes := make([]Shape, len(ds.Changes))
 	for i, item := range ds.Changes {
 		changes[i] = item.Get()
 	}
 
-	id := args[0]
+	id := env.Args[0]
 	err = p.doc.Sync(id, ds.Shapes, changes)
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-	ReplyCode(w, 200)
+	return
 }
 
-func (p *Service) PostDrawings(w http.ResponseWriter, req *http.Request, args []string) {
-	log.Println(req.Method, req.URL)
+func (p *Service) PostDrawings(env *restrpc.Env) (ret M, err error) {
+	log.Println(env.Req.Method, env.Req.URL)
 	drawing, err := p.doc.Add()
 	if err != nil {
-		ReplyError(w, err)
 		return
 	}
-	Reply(w, 200, M{"id": drawing.ID})
+	return M{"id": drawing.ID}, nil
 }
 
-func (p *Service) GetDrawing(w http.ResponseWriter, req *http.Request, args []string) {
-	log.Println(req.Method, req.URL)
-	id := args[0]
+func (p *Service) GetDrawing(env *restrpc.Env) (ret M, err error) {
+	log.Println(env.Req.Method, env.Req.URL)
+	id := env.Args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
-		ReplyError(w, err)
 		return
 	}
 	shapes, err := drawing.List()
 	if err != nil {
-		ReplyError(w, err)
 		return
 	}
-	Reply(w, 200, M{"shapes": shapes})
+	return M{"shapes": shapes}, nil
 }
 
-func (p *Service) DeleteDrawing(w http.ResponseWriter, req *http.Request, args []string) {
-	id := args[0]
-	err := p.doc.Delete(id)
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-	ReplyCode(w, 200)
+func (p *Service) DeleteDrawing(env *restrpc.Env) (err error) {
+	id := env.Args[0]
+	return p.doc.Delete(id)
 }
 
-func (p *Service) PostShapes(w http.ResponseWriter, req *http.Request, args []string) {
-	id := args[0]
+func (p *Service) PostShapes(args *serviceShape, env *restrpc.Env) (err error) {
+	id := env.Args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
-		ReplyError(w, err)
 		return
 	}
-
-	var aShape serviceShape
-	err = json.NewDecoder(req.Body).Decode(&aShape)
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-
-	err = drawing.Add(aShape.Get())
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-	ReplyCode(w, 200)
+	return drawing.Add(args.Get())
 }
 
-func (p *Service) GetShape(w http.ResponseWriter, req *http.Request, args []string) {
-	id := args[0]
+func (p *Service) GetShape(env *restrpc.Env) (shape Shape, err error) {
+	id := env.Args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
-		ReplyError(w, err)
 		return
 	}
 
-	shapeID := args[1]
-	shape, err := drawing.Get(shapeID)
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-	Reply(w, 200, shape)
+	shapeID := env.Args[1]
+	return drawing.Get(shapeID)
 }
 
-func (p *Service) PostShape(w http.ResponseWriter, req *http.Request, args []string) {
-	id := args[0]
+func (p *Service) PostShape(shapeOrZorder *serviceShapeOrZorder, env *restrpc.Env) (err error) {
+	id := env.Args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
-		ReplyError(w, err)
 		return
 	}
 
-	var shapeID = args[1]
-	var shapeOrZorder serviceShapeOrZorder
-	err = json.NewDecoder(req.Body).Decode(&shapeOrZorder)
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-
+	shapeID := env.Args[1]
 	if shapeOrZorder.Zorder != "" {
-		err = drawing.SetZorder(shapeID, shapeOrZorder.Zorder)
-	} else {
-		err = drawing.Set(shapeID, shapeOrZorder.Get())
+		return drawing.SetZorder(shapeID, shapeOrZorder.Zorder)
 	}
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-	ReplyCode(w, 200)
+	return drawing.Set(shapeID, shapeOrZorder.Get())
 }
 
-func (p *Service) DeleteShape(w http.ResponseWriter, req *http.Request, args []string) {
-	id := args[0]
+func (p *Service) DeleteShape(env *restrpc.Env) (err error) {
+	id := env.Args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
-		ReplyError(w, err)
 		return
 	}
 
-	shapeID := args[1]
-	err = drawing.Delete(shapeID)
-	if err != nil {
-		ReplyError(w, err)
-		return
-	}
-	ReplyCode(w, 200)
+	shapeID := env.Args[1]
+	return drawing.Delete(shapeID)
 }
 
 // ---------------------------------------------------
@@ -221,61 +155,11 @@ type serviceDrawingSync struct {
 
 // ---------------------------------------------------
 
-func Reply(w http.ResponseWriter, code int, data interface{}) {
-	b, _ := json.Marshal(data)
-	header := w.Header()
-	header.Set("Content-Type", "application/json")
-	header.Set("Content-Length", strconv.Itoa(len(b)))
-	w.WriteHeader(code)
-	w.Write(b)
-	log.Println("REPLY", code, string(b))
-}
-
-func ReplyCode(w http.ResponseWriter, code int) {
-	header := w.Header()
-	header.Set("Content-Length", "0")
-	w.WriteHeader(code)
-	log.Println("REPLY", code)
-}
-
-func ReplyError(w http.ResponseWriter, err error) {
-	if err == syscall.ENOENT {
-		Reply(w, 404, M{"error": "entry not found"})
-	} else if err == syscall.EINVAL {
-		Reply(w, 400, M{"error": "invalid arguments"})
-	} else if err == syscall.EEXIST {
-		Reply(w, 409, M{"error": "entry already exists"})
-	} else {
-		Reply(w, 500, M{"error": err.Error()})
-	}
-}
-
-// ---------------------------------------------------
-
-func (p *Service) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	route, args := getRoute(req)
-	if handle, ok := p.routeTable[route]; ok {
-		handle(w, req, args)
-	}
-}
-
-func getRoute(req *http.Request) (route string, args []string) {
-	parts := strings.Split(req.URL.Path, "/")
-	parts[0] = req.Method
-	for i := 2; i < len(parts); i += 2 {
-		args = append(args, parts[i])
-		parts[i] = "*"
-	}
-	route = strings.Join(parts, "/")
-	return
-}
-
-// ---------------------------------------------------
-
 func Main() {
 	doc := NewDocument()
 	service := NewService(doc)
-	http.ListenAndServe(":9999", service)
+	router := restrpc.Router{}
+	http.ListenAndServe(":9999", router.Register(service, routeTable))
 }
 
 // ---------------------------------------------------
