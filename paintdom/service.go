@@ -72,13 +72,13 @@ func (p *Service) DeleteDrawing(env *restrpc.Env) (err error) {
 	return p.doc.Delete(id)
 }
 
-func (p *Service) PostShapes(args *serviceShape, env *restrpc.Env) (err error) {
+func (p *Service) PostShapes(aShape *serviceShape, env *restrpc.Env) (err error) {
 	id := env.Args[0]
 	drawing, err := p.doc.Get(id)
 	if err != nil {
 		return
 	}
-	return drawing.Add(args.Get())
+	return drawing.Add(aShape.Get())
 }
 
 func (p *Service) GetShape(env *restrpc.Env) (shape Shape, err error) {
