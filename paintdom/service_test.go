@@ -25,7 +25,31 @@ func TestNewDrawing(t *testing.T) {
 	post http://qpaint.com/drawings
 	ret 200
 	json '{
-		"id": "10001"
+		"id": $(id1)
 	}'
+
+	match $(line1) '{
+		"id": "1",
+		"line": {
+			"pt1": {"x": 2.0, "y": 3.0},
+			"pt2": {"x": 15.0, "y": 30.0},
+			"style": {
+				"lineWidth": 3,
+				"lineColor": "red"
+			}
+		}
+	}'
+
+	post http://qpaint.com/drawings/$(id1)/shapes
+	json $(line1)
+	ret 200
+
+	get http://qpaint.com/drawings/$(id1)/shapes/1
+	ret 200
+	json $(line1)
 	`)
+
+	if !ctx.GetVar("id1").Equal("10001") {
+		t.Fatal(`$(id1) != "10001"`)
+	}
 }
