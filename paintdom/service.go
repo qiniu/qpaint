@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/qiniu/http/restrpc"
+	"github.com/qiniu/x/jsonutil"
 )
 
 // ---------------------------------------------------
@@ -32,7 +33,7 @@ var routeTable = [][2]string{
 }
 
 func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *restrpc.Env) (err error) {
-	log.Println(env.Req.Method, env.Req.URL, *ds)
+	log.Println(env.Req.Method, env.Req.URL, jsonutil.Stringify(ds))
 
 	changes := make([]Shape, len(ds.Changes))
 	for i, item := range ds.Changes {
@@ -121,10 +122,10 @@ func (p *Service) DeleteShape(env *restrpc.Env) (err error) {
 
 type serviceShape struct {
 	ID      string       `json:"id"`
-	Path    *pathData    `json:"path"`
-	Line    *lineData    `json:"line"`
-	Rect    *rectData    `json:"rect"`
-	Ellipse *ellipseData `json:"ellipse"`
+	Path    *pathData    `json:"path,omitempty"`
+	Line    *lineData    `json:"line,omitempty"`
+	Rect    *rectData    `json:"rect,omitempty"`
+	Ellipse *ellipseData `json:"ellipse,omitempty"`
 }
 
 func (p *serviceShape) Get() Shape {

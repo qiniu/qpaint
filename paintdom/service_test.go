@@ -8,7 +8,7 @@ import (
 	"github.com/qiniu/x/mockhttp"
 )
 
-func TestNewDrawing(t *testing.T) {
+func TestService(t *testing.T) {
 
 	doc := NewDocument()
 	service := NewService(doc)
