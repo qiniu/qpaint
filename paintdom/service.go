@@ -41,8 +41,11 @@ func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *restrpc.Env) (err
 	}
 
 	id := env.Args[0]
-	err = p.doc.Sync(id, ds.Shapes, changes)
-	return
+	drawing, err := p.doc.Get(id)
+	if err != nil {
+		return
+	}
+	return drawing.Sync(ds.Shapes, changes)
 }
 
 func (p *Service) PostDrawings(env *restrpc.Env) (ret M, err error) {
