@@ -37,6 +37,11 @@ Delete(uid UserID, id string) (err error)
 ### Drawing 类
 
 ```
+GetID() string
+```
+* 取得 drawing ID。
+
+```
 Add(shape Shape) (err error)
 ```
 * 添加新图形。
