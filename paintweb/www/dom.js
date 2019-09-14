@@ -184,6 +184,7 @@ function callAsync(method, url, headers, body, onOK) {
             let header = headers[i]
             http.setRequestHeader(header.key, header.value)
         }
+        http.setRequestHeader("Authorization", "QPaintStub 1")
         http.onreadystatechange = function() {
             if (http.readyState != 4) {
                 return
@@ -241,6 +242,7 @@ class QSynchronizer {
             let o = doc.prepareSync(baseVer)
             http.open("POST", syncUrl)
             http.setRequestHeader("Content-Type", "application/json")
+            http.setRequestHeader("Authorization", "QPaintStub 1")
             http.onreadystatechange = function() {
                 if (http.readyState != 4) {
                     return

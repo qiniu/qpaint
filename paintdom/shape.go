@@ -9,81 +9,81 @@ type Shape interface {
 	GetID() ShapeID
 }
 
-type shapeBase struct {
-	ID ShapeID `json:"id"`
+type ShapeBase struct {
+	ID ShapeID `json:"id" bson:"-"`
 }
 
-func (p *shapeBase) GetID() ShapeID {
+func (p *ShapeBase) GetID() ShapeID {
 	return p.ID
 }
 
 // ---------------------------------------------------
 
 type ShapeStyle struct {
-	LineWidth coord  `json:"lineWidth"`
-	LineColor string `json:"lineColor"`
-	FillColor string `json:"fillColor"`
+	LineWidth coord  `json:"lineWidth" bson:"lineWidth"`
+	LineColor string `json:"lineColor" bson:"lineColor"`
+	FillColor string `json:"fillColor" bson:"fillColor"`
 }
 
 type Point struct {
-	X coord `json:"x"`
-	Y coord `json:"y"`
+	X coord `json:"x" bson:"x"`
+	Y coord `json:"y" bson:"y"`
 }
 
 // ---------------------------------------------------
 
 type Path struct {
-	shapeBase `json:",inline"`
-	pathData  `json:"path"`
+	ShapeBase `json:",inline" bson:",inline"`
+	PathData  `json:"path" bson:"path"`
 }
 
-type pathData struct {
-	Points []Point    `json:"points,omitempty"`
-	Close  bool       `json:"close,omitempty"`
-	Style  ShapeStyle `json:"style"`
+type PathData struct {
+	Points []Point    `json:"points,omitempty" bson:"points,omitempty"`
+	Close  bool       `json:"close,omitempty" bson:"close,omitempty"`
+	Style  ShapeStyle `json:"style" bson:"style"`
 }
 
 // ---------------------------------------------------
 
 type Line struct {
-	shapeBase `json:",inline"`
-	lineData  `json:"line"`
+	ShapeBase `json:",inline" bson:",inline"`
+	LineData  `json:"line" bson:"line"`
 }
 
-type lineData struct {
-	Pt1    Point      `json:"pt1"`
-	Pt2    Point      `json:"pt2"`
-	Style  ShapeStyle `json:"style"`
+type LineData struct {
+	Pt1    Point      `json:"pt1" bson:"pt1"`
+	Pt2    Point      `json:"pt2" bson:"pt2"`
+	Style  ShapeStyle `json:"style" bson:"style"`
 }
 
 // ---------------------------------------------------
 
 type Rect struct {
-	shapeBase `json:",inline"`
-	rectData  `json:"rect"`
+	ShapeBase `json:",inline" bson:",inline"`
+	RectData  `json:"rect" bson:"rect"`
 }
 
-type rectData struct {
-	X      coord      `json:"x"`
-	Y      coord      `json:"y"`
-	Width  coord      `json:"width"`
-	Height coord      `json:"height"`
-	Style  ShapeStyle `json:"style"`
+type RectData struct {
+	X      coord      `json:"x" bson:"x"`
+	Y      coord      `json:"y" bson:"y"`
+	Width  coord      `json:"width" bson:"width"`
+	Height coord      `json:"height" bson:"height"`
+	Style  ShapeStyle `json:"style" bson:"style"`
 }
 
 // ---------------------------------------------------
 
 type Ellipse struct {
-	shapeBase   `json:",inline"`
-	ellipseData `json:"ellipse"`
+	ShapeBase   `json:",inline" bson:",inline"`
+	EllipseData `json:"ellipse" bson:"ellipse"`
 }
 
-type ellipseData struct {
-	X       coord      `json:"x"`
-	Y       coord      `json:"y"`
-	RadiusX coord      `json:"radiusX"`
-	RadiusY coord      `json:"radiusY"`
-	Style   ShapeStyle `json:"style"`
+type EllipseData struct {
+	X       coord      `json:"x" bson:"x"`
+	Y       coord      `json:"y" bson:"y"`
+	RadiusX coord      `json:"radiusX" bson:"radiusX"`
+	RadiusY coord      `json:"radiusY" bson:"radiusY"`
+	Style   ShapeStyle `json:"style" bson:"style"`
 }
 
 // ---------------------------------------------------

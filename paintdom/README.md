@@ -1,4 +1,4 @@
-Paint DOM API
+QPaint DOM API
 ========
 
 为了简化，我们不引入多用户，只是引入多 drawing。

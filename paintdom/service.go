@@ -1,16 +1,59 @@
 package paintdom
 
 import (
+	"syscall"
+	"strconv"
+	"strings"
 	"log"
 	"net/http"
 
+	"gopkg.in/mgo.v2"
+	"github.com/qiniu/http/httputil"
 	"github.com/qiniu/http/restrpc"
 	"github.com/qiniu/x/jsonutil"
 )
 
 // ---------------------------------------------------
 
-type M map[string]interface{}
+var (
+	errNotImpl  = httputil.NewError(499, "not impl")
+	errBadToken = httputil.NewError(401, "bad token")
+)
+
+func mgoError(err error) error {
+	if err == mgo.ErrNotFound {
+		return syscall.ENOENT
+	}
+	if mgo.IsDup(err) {
+		return syscall.EEXIST
+	}
+	return err
+}
+
+// ---------------------------------------------------
+
+// Env 代表 RPC 请求的环境。
+type Env struct {
+	restrpc.Env
+	UID UserID
+}
+
+// OpenEnv 初始化环境。
+func (p *Env) OpenEnv(rcvr interface{}, w *http.ResponseWriter, req *http.Request) error {
+	auth := req.Header.Get("Authorization")
+	pos := strings.Index(auth, " ")
+	if pos < 0 || auth[:pos] != "QPaintStub" {
+		return errBadToken
+	}
+	uid, err := strconv.Atoi(auth[pos+1:])
+	if err != nil {
+		return errBadToken
+	}
+	p.UID = UserID(uid)
+	return p.Env.OpenEnv(rcvr, w, req)
+}
+
+// ---------------------------------------------------
 
 type Service struct {
 	doc *Document
@@ -32,7 +75,7 @@ var routeTable = [][2]string{
 	{"DELETE /drawings/*/shapes/*", "DeleteShape"},
 }
 
-func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *restrpc.Env) (err error) {
+func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *Env) (err error) {
 	log.Println(env.Req.Method, env.Req.URL, jsonutil.Stringify(ds))
 
 	changes := make([]Shape, len(ds.Changes))
@@ -41,23 +84,26 @@ func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *restrpc.Env) (err
 	}
 
 	id := env.Args[0]
-	err = p.doc.Sync(id, ds.Shapes, changes)
-	return
-}
-
-func (p *Service) PostDrawings(env *restrpc.Env) (ret M, err error) {
-	log.Println(env.Req.Method, env.Req.URL)
-	drawing, err := p.doc.Add()
+	drawing, err := p.doc.Get(env.UID, id)
 	if err != nil {
 		return
 	}
-	return M{"id": drawing.ID}, nil
+	return drawing.Sync(ds.Shapes, changes)
 }
 
-func (p *Service) GetDrawing(env *restrpc.Env) (ret M, err error) {
+func (p *Service) PostDrawings(env *Env) (ret M, err error) {
+	log.Println(env.Req.Method, env.Req.URL)
+	drawing, err := p.doc.Add(env.UID)
+	if err != nil {
+		return
+	}
+	return M{"id": drawing.getID()}, nil
+}
+
+func (p *Service) GetDrawing(env *Env) (ret M, err error) {
 	log.Println(env.Req.Method, env.Req.URL)
 	id := env.Args[0]
-	drawing, err := p.doc.Get(id)
+	drawing, err := p.doc.Get(env.UID, id)
 	if err != nil {
 		return
 	}
@@ -68,23 +114,23 @@ func (p *Service) GetDrawing(env *restrpc.Env) (ret M, err error) {
 	return M{"shapes": shapes}, nil
 }
 
-func (p *Service) DeleteDrawing(env *restrpc.Env) (err error) {
+func (p *Service) DeleteDrawing(env *Env) (err error) {
 	id := env.Args[0]
-	return p.doc.Delete(id)
+	return p.doc.Delete(env.UID, id)
 }
 
-func (p *Service) PostShapes(aShape *serviceShape, env *restrpc.Env) (err error) {
+func (p *Service) PostShapes(aShape *serviceShape, env *Env) (err error) {
 	id := env.Args[0]
-	drawing, err := p.doc.Get(id)
+	drawing, err := p.doc.Get(env.UID, id)
 	if err != nil {
 		return
 	}
 	return drawing.Add(aShape.Get())
 }
 
-func (p *Service) GetShape(env *restrpc.Env) (shape Shape, err error) {
+func (p *Service) GetShape(env *Env) (shape Shape, err error) {
 	id := env.Args[0]
-	drawing, err := p.doc.Get(id)
+	drawing, err := p.doc.Get(env.UID, id)
 	if err != nil {
 		return
 	}
@@ -93,9 +139,9 @@ func (p *Service) GetShape(env *restrpc.Env) (shape Shape, err error) {
 	return drawing.Get(shapeID)
 }
 
-func (p *Service) PostShape(shapeOrZorder *serviceShapeOrZorder, env *restrpc.Env) (err error) {
+func (p *Service) PostShape(shapeOrZorder *serviceShapeOrZorder, env *Env) (err error) {
 	id := env.Args[0]
-	drawing, err := p.doc.Get(id)
+	drawing, err := p.doc.Get(env.UID, id)
 	if err != nil {
 		return
 	}
@@ -107,9 +153,9 @@ func (p *Service) PostShape(shapeOrZorder *serviceShapeOrZorder, env *restrpc.En
 	return drawing.Set(shapeID, shapeOrZorder.Get())
 }
 
-func (p *Service) DeleteShape(env *restrpc.Env) (err error) {
+func (p *Service) DeleteShape(env *Env) (err error) {
 	id := env.Args[0]
-	drawing, err := p.doc.Get(id)
+	drawing, err := p.doc.Get(env.UID, id)
 	if err != nil {
 		return
 	}
@@ -122,24 +168,24 @@ func (p *Service) DeleteShape(env *restrpc.Env) (err error) {
 
 type serviceShape struct {
 	ID      string       `json:"id"`
-	Path    *pathData    `json:"path,omitempty"`
-	Line    *lineData    `json:"line,omitempty"`
-	Rect    *rectData    `json:"rect,omitempty"`
-	Ellipse *ellipseData `json:"ellipse,omitempty"`
+	Path    *PathData    `json:"path,omitempty"`
+	Line    *LineData    `json:"line,omitempty"`
+	Rect    *RectData    `json:"rect,omitempty"`
+	Ellipse *EllipseData `json:"ellipse,omitempty"`
 }
 
 func (p *serviceShape) Get() Shape {
 	if p.Path != nil {
-		return &Path{shapeBase: shapeBase{p.ID}, pathData: *p.Path}
+		return &Path{ShapeBase: ShapeBase{p.ID}, PathData: *p.Path}
 	}
 	if p.Line != nil {
-		return &Line{shapeBase: shapeBase{p.ID}, lineData: *p.Line}
+		return &Line{ShapeBase: ShapeBase{p.ID}, LineData: *p.Line}
 	}
 	if p.Rect != nil {
-		return &Rect{shapeBase: shapeBase{p.ID}, rectData: *p.Rect}
+		return &Rect{ShapeBase: ShapeBase{p.ID}, RectData: *p.Rect}
 	}
 	if p.Ellipse != nil {
-		return &Ellipse{shapeBase: shapeBase{p.ID}, ellipseData: *p.Ellipse}
+		return &Ellipse{ShapeBase: ShapeBase{p.ID}, EllipseData: *p.Ellipse}
 	}
 	return nil
 }
@@ -157,7 +203,11 @@ type serviceDrawingSync struct {
 // ---------------------------------------------------
 
 func Main() {
-	doc := NewDocument()
+	session, err := mgo.Dial("localhost")
+	if err != nil {
+		log.Fatal(err)
+	}
+	doc := NewDocument(session)
 	service := NewService(doc)
 	router := restrpc.Router{}
 	http.ListenAndServe(":9999", router.Register(service, routeTable))

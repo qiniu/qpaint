@@ -6,11 +6,22 @@ import (
 	"github.com/qiniu/http/restrpc"
 	"github.com/qiniu/qiniutest/httptest"
 	"github.com/qiniu/x/mockhttp"
+	"gopkg.in/mgo.v2"
 )
+
+func newTestingDocument(t *testing.T) *Document {
+	DBName = "testQPaint"
+	session, err := mgo.Dial("localhost")
+	if err != nil {
+		t.Fatal("mgo.Dial failed:", err)
+	}
+	session.DB(DBName).DropDatabase()
+	return NewDocument(session)
+}
 
 func TestService(t *testing.T) {
 
-	doc := NewDocument()
+	doc := newTestingDocument(t)
 	service := NewService(doc)
 
 	transport := mockhttp.NewTransport()
@@ -23,6 +34,7 @@ func TestService(t *testing.T) {
 	ctx.Exec(
 	`
 	post http://qpaint.com/drawings
+	header Authorization 'QPaintStub 1'
 	ret 200
 	json '{
 		"id": $(id1)
@@ -40,16 +52,50 @@ func TestService(t *testing.T) {
 		}
 	}'
 
+	match $(line1v2) '{
+		"id": "1",
+		"line": {
+			"pt1": {"x":152,"y":333},
+			"pt2": {"x":158,"y":324},
+			"style": {"lineWidth":1,"lineColor":"black"}
+		}
+	}'
+
+	match $(line2) '{
+		"id": "2",
+		"line": {
+			"pt1": {"x":152,"y":133},
+			"pt2": {"x":358,"y":324},
+			"style": {"lineWidth":1,"lineColor":"black","fillColor":"white"}
+		}
+	}'
+
 	post http://qpaint.com/drawings/$(id1)/shapes
+	header Authorization 'QPaintStub 1'
 	json $(line1)
 	ret 200
 
 	get http://qpaint.com/drawings/$(id1)/shapes/1
+	header Authorization 'QPaintStub 1'
 	ret 200
 	json $(line1)
-	`)
 
-	if !ctx.GetVar("id1").Equal("10001") {
-		t.Fatal(`$(id1) != "10001"`)
-	}
+	post http://qpaint.com/drawings/$(id1)/sync
+	header Authorization 'QPaintStub 1'
+	json '{
+		"changes": [$(line1v2), $(line2)],
+		"shapes": ["1", "2"]
+	}'
+	ret 200
+
+	get http://qpaint.com/drawings/$(id1)/shapes/1
+	header Authorization 'QPaintStub 1'
+	ret 200
+	json $(line1v2)
+
+	get http://qpaint.com/drawings/$(id1)/shapes/2
+	header Authorization 'QPaintStub 1'
+	ret 200
+	json $(line2)
+	`)
 }
