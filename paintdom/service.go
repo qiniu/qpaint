@@ -54,7 +54,12 @@ func (p *Service) PostDrawingSync(w http.ResponseWriter, req *http.Request, args
 	}
 
 	id := args[0]
-	err = p.doc.Sync(id, ds.Shapes, changes)
+	drawing, err := p.doc.Get(id)
+	if err != nil {
+		ReplyError(w, err)
+		return
+	}
+	err = drawing.Sync(ds.Shapes, changes)
 	if err != nil {
 		ReplyError(w, err)
 		return
