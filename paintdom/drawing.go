@@ -227,14 +227,6 @@ func (p *Document) Delete(id string) (err error) {
 	return
 }
 
-func (p *Document) Sync(id string, shapes []ShapeID, changes []Shape) (err error) {
-	drawing, ok := p.data[id]
-	if !ok {
-		return syscall.ENOENT
-	}
-	return drawing.Sync(shapes, changes)
-}
-
 // ---------------------------------------------------
 
 var (
