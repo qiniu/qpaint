@@ -1,4 +1,6 @@
 language: go
+services:
+  - mongodb
 script:
   - go install -v ./...
   - go test -v ./...
