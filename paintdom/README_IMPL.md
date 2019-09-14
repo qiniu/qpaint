@@ -76,6 +76,17 @@ Sync(shapes []ShapeID, changes []Shape) (err error)
 ```
 * 同步drawing的修改。
 
+### Shape 类型
+
+```
+type ShapeID = string
+
+type Shape interface {
+	GetID() ShapeID
+}
+```
+* 考虑到 Drawing 类的 List 和 Get 返回的 Shape 实例，会被直接作为 RESTful API 的结果返回。所以 Shape json.Marshal 结果必须符合 API 层的预期。
+* 考虑到 Drawing 类的 Add、Set、Sync 传入的 Shape 实例，会被直接写入 mongodb，所以 Shape bson.Marshal 结果必须符合 mongodb 的预期。
 
 ## 数据结构
 
@@ -94,5 +105,5 @@ Sync(shapes []ShapeID, changes []Shape) (err error)
 | 字段名 | 含义 | 索引 | 类型 |
 | ------- | ------ | ---------- | ------ |
 | dgid | DrawingID | - | string |
-| spid | ShapeID | (dgid, spid) 联合唯一索引 | UserID |
+| spid | ShapeID | (dgid, spid) 联合唯一索引 | ShapeID |
 | shape | Shape | - | json |
