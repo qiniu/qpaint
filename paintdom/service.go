@@ -97,7 +97,7 @@ func (p *Service) PostDrawings(env *Env) (ret M, err error) {
 	if err != nil {
 		return
 	}
-	return M{"id": drawing.getID()}, nil
+	return M{"id": drawing.GetID()}, nil
 }
 
 func (p *Service) GetDrawing(env *Env) (ret M, err error) {

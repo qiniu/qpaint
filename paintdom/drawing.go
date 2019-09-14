@@ -50,7 +50,8 @@ func newDrawing(id bson.ObjectId, session *mgo.Session) *Drawing {
 	}
 }
 
-func (p *Drawing) getID() string {
+// GetID 取得 drawing ID。
+func (p *Drawing) GetID() string {
 	return p.id.Hex()
 }
 
