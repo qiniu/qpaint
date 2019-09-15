@@ -74,7 +74,7 @@ func (p *Drawing) Sync(shapes []ShapeID, changes []Shape) (err error) {
 			return mgoError(err)
 		}
 	}
-	drawingColl := p.session.DB(DBName).C("drawing")
+	drawingColl := c.DB(DBName).C("drawing")
 	return mgoError(drawingColl.UpdateId(p.id, M{
 		"$set": M{"shapes": shapes},
 	}))
@@ -85,10 +85,18 @@ func (p *Drawing) Add(shape Shape) (err error) {
 	c := p.session.Copy()
 	defer c.Close()
 	shapeColl := c.DB(DBName).C("shape")
-	return mgoError(shapeColl.Insert(M{
+	spid := shape.GetID()
+	err = shapeColl.Insert(M{
 		"dgid": p.id,
-		"spid": shape.GetID(),
+		"spid": spid,
 		"shape": shape,
+	})
+	if err != nil {
+		return mgoError(err)
+	}
+	drawingColl := c.DB(DBName).C("drawing")
+	return mgoError(drawingColl.UpdateId(p.id, M{
+		"$push": M{"shapes": spid},
 	}))
 }
 
@@ -163,6 +171,13 @@ func (p *Drawing) SetZorder(id ShapeID, zorder string) (err error) {
 func (p *Drawing) Delete(id ShapeID) (err error) {
 	c := p.session.Copy()
 	defer c.Close()
+	drawingColl := c.DB(DBName).C("drawing")
+	err = drawingColl.UpdateId(p.id, M{
+		"$pull": M{"shapes": id},
+	})
+	if err != nil {
+		return mgoError(err)
+	}
 	shapeColl := c.DB(DBName).C("shape")
 	return mgoError(shapeColl.Remove(M{
 		"dgid": p.id,

@@ -75,6 +75,7 @@ var routeTable = [][2]string{
 	{"DELETE /drawings/*/shapes/*", "DeleteShape"},
 }
 
+// PostDrawingSync 同步客户端的修改。
 func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *Env) (err error) {
 	log.Println(env.Req.Method, env.Req.URL, jsonutil.Stringify(ds))
 
@@ -91,6 +92,7 @@ func (p *Service) PostDrawingSync(ds *serviceDrawingSync, env *Env) (err error) 
 	return drawing.Sync(ds.Shapes, changes)
 }
 
+// PostDrawings 创建新drawing。
 func (p *Service) PostDrawings(env *Env) (ret M, err error) {
 	log.Println(env.Req.Method, env.Req.URL)
 	drawing, err := p.doc.Add(env.UID)
@@ -100,6 +102,7 @@ func (p *Service) PostDrawings(env *Env) (ret M, err error) {
 	return M{"id": drawing.GetID()}, nil
 }
 
+// GetDrawing 取得drawing的内容。
 func (p *Service) GetDrawing(env *Env) (ret M, err error) {
 	log.Println(env.Req.Method, env.Req.URL)
 	id := env.Args[0]
@@ -114,11 +117,13 @@ func (p *Service) GetDrawing(env *Env) (ret M, err error) {
 	return M{"shapes": shapes}, nil
 }
 
+// DeleteDrawing 删除drawing。
 func (p *Service) DeleteDrawing(env *Env) (err error) {
 	id := env.Args[0]
 	return p.doc.Delete(env.UID, id)
 }
 
+// PostShapes 创建新shape。
 func (p *Service) PostShapes(aShape *serviceShape, env *Env) (err error) {
 	id := env.Args[0]
 	drawing, err := p.doc.Get(env.UID, id)
@@ -128,6 +133,7 @@ func (p *Service) PostShapes(aShape *serviceShape, env *Env) (err error) {
 	return drawing.Add(aShape.Get())
 }
 
+// GetShape 取得一个shape的内容。
 func (p *Service) GetShape(env *Env) (shape Shape, err error) {
 	id := env.Args[0]
 	drawing, err := p.doc.Get(env.UID, id)
@@ -139,6 +145,7 @@ func (p *Service) GetShape(env *Env) (shape Shape, err error) {
 	return drawing.Get(shapeID)
 }
 
+// PostShape 修改一个shape。
 func (p *Service) PostShape(shapeOrZorder *serviceShapeOrZorder, env *Env) (err error) {
 	id := env.Args[0]
 	drawing, err := p.doc.Get(env.UID, id)
@@ -153,6 +160,7 @@ func (p *Service) PostShape(shapeOrZorder *serviceShapeOrZorder, env *Env) (err 
 	return drawing.Set(shapeID, shapeOrZorder.Get())
 }
 
+// DeleteShape 删除一个shape。
 func (p *Service) DeleteShape(env *Env) (err error) {
 	id := env.Args[0]
 	drawing, err := p.doc.Get(env.UID, id)

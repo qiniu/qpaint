@@ -107,3 +107,47 @@ type Shape interface {
 | dgid | DrawingID | - | string |
 | spid | ShapeID | (dgid, spid) 联合唯一索引 | ShapeID |
 | shape | Shape | - | json |
+
+## 实现逻辑（算法）
+
+创建新drawing (uid):
+```
+dgid = newObjectId()
+db.drawing.insert({_id: dgid, uid: uid, shapes:[]})
+return dgid
+```
+
+取得drawing的内容 (uid, dgid):
+```
+doc = db.drawing.find({_id: dgid, uid: uid})
+shapes = []
+foreach spid in doc.shapes {
+    o = db.shape.find({dgid: dgid, spid: spid})
+    shapes.push(o.shape)
+}
+return shapes
+```
+
+删除drawing (uid, dgid):
+```
+db.drawing.remove({_id: dgid, uid: uid})
+```
+
+创建新shape (uid, dgid, shape):
+```
+n = db.drawing.find({_id: dgid, uid: uid}).count()
+if n > 0 {
+    db.shape.insert({dgid: dgid, spid: shape.id, shape: shape})
+    db.drawing.update({$push: {shapes: shape.id}})
+}
+```
+
+删除shape (uid, dgid, spid):
+```
+n = db.drawing.find({_id: dgid, uid: uid}).count()
+if n > 0 {
+    if db.drawing.update({$pull: {shapes: spid}}) {
+        db.shape.remove({dgid: dgid, spid: spid})
+    }
+}`
+```
