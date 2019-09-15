@@ -130,7 +130,9 @@ return shapes
 
 删除drawing (uid, dgid):
 ```
-db.drawing.remove({_id: dgid, uid: uid})
+if db.drawing.remove({_id: dgid, uid: uid}) {
+    db.shape.remove({dgid: dgid})
+}
 ```
 
 创建新shape (uid, dgid, shape):

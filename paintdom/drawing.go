@@ -251,11 +251,20 @@ func (p *Document) Get(uid UserID, dgid string) (drawing *Drawing, err error) {
 func (p *Document) Delete(uid UserID, dgid string) (err error) {
 	c := p.session.Copy()
 	defer c.Close()
+	id := bson.ObjectIdHex(dgid)
 	drawingColl := c.DB(DBName).C("drawing")
-	return mgoError(drawingColl.Remove(M{
-		"_id": bson.ObjectIdHex(dgid),
+	err = drawingColl.Remove(M{
+		"_id": id,
 		"uid": uid,
-	}))
+	})
+	if err != nil {
+		return mgoError(err)
+	}
+	shapeColl := c.DB(DBName).C("shape")
+	_, err = shapeColl.RemoveAll(M{
+		"dgid": id,
+	})
+	return mgoError(err)
 }
 
 // ---------------------------------------------------

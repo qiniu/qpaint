@@ -21,6 +21,9 @@ var (
 )
 
 func mgoError(err error) error {
+	if err == nil {
+		return nil
+	}
 	if err == mgo.ErrNotFound {
 		return syscall.ENOENT
 	}
