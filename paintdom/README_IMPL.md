@@ -119,7 +119,7 @@ return dgid
 
 取得drawing的内容 (uid, dgid):
 ```
-doc = db.drawing.find({_id: dgid, uid: uid})
+doc = db.drawing.findOne({_id: dgid, uid: uid})
 shapes = []
 foreach spid in doc.shapes {
     o = db.shape.find({dgid: dgid, spid: spid})
@@ -135,8 +135,7 @@ db.drawing.remove({_id: dgid, uid: uid})
 
 创建新shape (uid, dgid, shape):
 ```
-n = db.drawing.find({_id: dgid, uid: uid}).count()
-if n > 0 {
+if db.drawing.find({_id: dgid, uid: uid}) {
     db.shape.insert({dgid: dgid, spid: shape.id, shape: shape})
     db.drawing.update({$push: {shapes: shape.id}})
 }
@@ -144,8 +143,7 @@ if n > 0 {
 
 删除shape (uid, dgid, spid):
 ```
-n = db.drawing.find({_id: dgid, uid: uid}).count()
-if n > 0 {
+if db.drawing.find({_id: dgid, uid: uid}) {
     if db.drawing.update({$pull: {shapes: spid}}) {
         db.shape.remove({dgid: dgid, spid: spid})
     }
