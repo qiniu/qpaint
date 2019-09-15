@@ -149,5 +149,5 @@ if n > 0 {
     if db.drawing.update({$pull: {shapes: spid}}) {
         db.shape.remove({dgid: dgid, spid: spid})
     }
-}`
+}
 ```
