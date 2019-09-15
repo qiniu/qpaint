@@ -1,4 +1,4 @@
-QPaint DOM IMPL
+QPaint DOM IMPL (第 42 讲)
 ========
 
 ## 逻辑 DOM 结构

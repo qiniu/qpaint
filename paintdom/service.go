@@ -55,10 +55,12 @@ func (p *Env) OpenEnv(rcvr interface{}, w *http.ResponseWriter, req *http.Reques
 
 // ---------------------------------------------------
 
+// Service 提供 RESTful API 层访问接口。
 type Service struct {
 	doc *Document
 }
 
+// NewService 创建Service实例。
 func NewService(doc *Document) (p *Service) {
 	p = &Service{doc: doc}
 	return
@@ -210,6 +212,7 @@ type serviceDrawingSync struct {
 
 // ---------------------------------------------------
 
+// Main 是 paintdom 程序的 main 入口。
 func Main() {
 	session, err := mgo.Dial("localhost")
 	if err != nil {
