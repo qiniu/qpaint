@@ -1,4 +1,6 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/qiniu/dyn v0.0.0-20190911135125-949eec9ecf4b h1:dNJE7PPiys6bUGw4sPiZvvVnq9qpYmm40JDlZiAXtTU=
 github.com/qiniu/dyn v0.0.0-20190911135125-949eec9ecf4b/go.mod h1:En9iw0jHEKh1kD6JehUZvNfbMx1Tz+NnMpnNqnKT1Bk=

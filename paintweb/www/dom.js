@@ -174,30 +174,51 @@ function localStorage_setItem(key, val) {
 
 // ----------------------------------------------------------
 
-var http = new XMLHttpRequest()
+function defaultOn401() {
+}
 
-function callAsync(method, url, headers, body, onOK) {
+var http = new XMLHttpRequest()
+var defaultOptions = {
+    headers: [],
+    body: null,
+    on401: defaultOn401
+}
+var newDocOptions = {
+    headers: [],
+    body: null,
+    on401: function() {
+        window.location = "/login?return=" + encodeURIComponent(window.location)
+    }
+}
+
+function callAsync(method, url, opts, onOK) {
+    if (opts == null) {
+        opts = defaultOptions
+    }
     let timeout = 1000
+    let headers = opts.headers || []
     let doFunc = function() {
         http.open(method, url)
         for (let i in headers) {
             let header = headers[i]
             http.setRequestHeader(header.key, header.value)
         }
-        http.setRequestHeader("Authorization", "QPaintStub 1")
         http.onreadystatechange = function() {
             if (http.readyState != 4) {
                 return
             }
             if (http.status == 200) {
                 onOK()
+            } else if (http.status == 401) { // bad token
+                let on401 = opts.on401 || defaultOn401
+                on401()
             } else {
                 console.log(method, url, ", status:", http.status, "-", http.statusText)
                 setTimeout(doFunc, timeout)
                 timeout *= 2
             }
         }
-        http.send(body)
+        http.send(opts.body || null)
     }
     doFunc()
 }
@@ -242,7 +263,6 @@ class QSynchronizer {
             let o = doc.prepareSync(baseVer)
             http.open("POST", syncUrl)
             http.setRequestHeader("Content-Type", "application/json")
-            http.setRequestHeader("Authorization", "QPaintStub 1")
             http.onreadystatechange = function() {
                 if (http.readyState != 4) {
                     return
@@ -731,7 +751,7 @@ class QPaintDoc {
             this.localID = _makeLocalDrawingID()
         }
         let doc = this
-        callAsync("GET", "/api/drawings/" + displayID, [], null, function() {
+        callAsync("GET", "/api/drawings/" + displayID, newDocOptions, function() {
             let o = JSON.parse(http.responseText)
             removeCache(localID)
             doc.syncer.noflush(function() {
@@ -746,7 +766,7 @@ class QPaintDoc {
     }
     _newDoc() {
         let doc = this
-        callAsync("POST", "/api/drawings", [], null, function() {
+        callAsync("POST", "/api/drawings", newDocOptions, function() {
             let o = JSON.parse(http.responseText)
             doc.displayID = o.id
             let localIDKey = "local:" + doc.displayID
