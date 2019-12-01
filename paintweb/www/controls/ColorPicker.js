@@ -1,6 +1,6 @@
 /*
 Usage:
-    <div type="ColorPicker" id="<id>" onchange="onchange()"></div>
+    <div type="ColorPicker" id="$id" onchange="onchange()"></div>
 */
 function ColorPicker(div) {
     let id = div.id

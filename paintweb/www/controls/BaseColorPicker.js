@@ -1,6 +1,6 @@
 /*
 Usage:
-    <div type="BaseColorPicker" id="<id>" onchange="onchange()" palette="<color1>,<color2>,...,<colorN>"></div>
+    <div type="BaseColorPicker" id="$id" onchange="onchange()" palette="$color1,$color2,...,$colorN"></div>
     color = black | black(黑色) | null | null(透明色) | null(transparent) | ...
 */
 function BaseColorPicker(div) {

@@ -1,6 +1,6 @@
 /*
 Usage:
-    <div type="BaseLineWidthPicker" id="<id>" onchange="onchange()"></div>
+    <div type="BaseLineWidthPicker" id="$id" onchange="onchange()"></div>
 */
 function BaseLineWidthPicker(div) {
     let id = div.id
